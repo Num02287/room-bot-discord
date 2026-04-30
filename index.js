@@ -22,14 +22,17 @@ const app = express();
 app.get('/', (req, res) => res.send('Bot is Online!'));
 app.listen(process.env.PORT || 3000, () => console.log('Web Server is ready.'));
 
-// ===== ดึงข้อมูลจาก config.json =====
-const { token, createChannelId, categoryId, allowRoleId } = require("./config.json");
+// ===== ดึงข้อมูลจาก Environment Variables (ดึงจากหน้าจอ Render ที่คุณตั้งค่าไว้) =====
+const token = process.env.TOKEN;
+const createChannelId = process.env.CREATE_CHANNEL_ID;
+const categoryId = process.env.CATEGORY_ID;
+const allowRoleId = process.env.ALLOW_ROLE_ID;
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds, 
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers // สำคัญ: ต้องเปิดใน Discord Developer Portal ด้วย
+    GatewayIntentBits.GuildMembers 
   ]
 });
 
@@ -83,7 +86,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       return;
     }
 
-    // ระบบโอนเจ้าของอัตโนมัติ (ไม่ต้องแก้อะไร)
+    // ระบบโอนเจ้าของอัตโนมัติ
     if (oldState.member.id === data.owner) {
       if (channel.members.size === 1) return;
 
@@ -139,7 +142,6 @@ client.on("interactionCreate", async (interaction) => {
 
       const data = tempChannels.get(channel.id);
 
-      // ดูเจ้าของ (ทุกคนกดได้)
       if (interaction.customId === "owner") {
         if (!data) return interaction.reply({ content: "❌ ห้องนี้ไม่ได้อยู่ในระบบ", ephemeral: true });
         return interaction.reply({
@@ -152,7 +154,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // เช็คเจ้าของ (เฉพาะเจ้าของที่กดปุ่มจัดการได้)
       if (!data || data.owner !== member.id) return interaction.reply({ content: "❌ ไม่ใช่เจ้าของ", ephemeral: true });
 
       if (interaction.customId === "name") {
