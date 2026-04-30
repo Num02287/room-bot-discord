@@ -1,5 +1,4 @@
 {
-  "token": "process.env.TOKEN",
   "createChannelId": "1499271056127561818",
   "categoryId": "1496872867999256686",
   "allowRoleId": "1492931728682254546"
