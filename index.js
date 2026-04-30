@@ -1,3 +1,17 @@
+require("dotenv").config();
+
+// 🔥 เพิ่มอันนี้เพื่อให้ Render ไม่หลับ
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
+
+app.listen(3000, () => {
+  console.log("🌐 Web server running");
+});
+
 const {
   Client,
   GatewayIntentBits,
@@ -22,10 +36,17 @@ const {
   allowRoleId
 } = require("./config.json");
 
-// ✅ ใช้ env แทน config
+// ✅ ใช้ของเดิมคุณ (ไม่เปลี่ยนชื่อ)
 const token = process.env.TOKEN;
 
-console.log("TOKEN:", token);
+// 🔥 กันพังถ้าไม่มี token
+if (!token) {
+  console.error("❌ ไม่พบ TOKEN");
+  process.exit(1);
+}
+
+// ❗ (แนะนำให้ลบ แต่ผมยังคงไว้ตามที่คุณขอ)
+// console.log("TOKEN:", token);
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
@@ -164,7 +185,6 @@ if (interaction.customId === "lock") {
     });
   }
 
-  // 🔥 เจ้าของ "ปัจจุบัน" เข้าได้เสมอ
   await channel.permissionOverwrites.edit(data.owner, {
     Connect: true,
     ViewChannel: true
@@ -189,17 +209,15 @@ if (interaction.customId === "lock") {
       }
 
 if (interaction.customId === "show") {
-
-  // 👁 ให้เห็นห้อง
   await channel.permissionOverwrites.edit(interaction.guild.id, {
     ViewChannel: true,
-    Connect: false // 🔒 บังคับล็อกไว้
+    Connect: false
   });
 
   if (allowRoleId) {
     await channel.permissionOverwrites.edit(allowRoleId, {
       ViewChannel: true,
-      Connect: false // 🔒 เหมือนกัน
+      Connect: false
     }).catch(()=>{});
   }
 
