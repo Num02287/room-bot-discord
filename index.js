@@ -46,7 +46,7 @@ const client = new Client({
 // ================= TEMP CHANNELS =================
 const tempChannels = new Map();
 
-// ================= SLASH COMMANDS =================
+// ================= SLASH COMMAND =================
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
@@ -141,7 +141,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     });
   }
 
-  // ===== ออกจากห้อง =====
+  // ===== คนออกจากห้อง =====
   if (
     oldState.channelId &&
     tempChannels.has(oldState.channelId)
@@ -177,7 +177,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
         data.owner = newOwner.id;
 
-        // เปลี่ยนชื่อห้อง
         await channel.setName(
           `📍・ห้องส่วนตัวของ ${newOwner.user.username}`
         ).catch(() => {});
@@ -207,7 +206,6 @@ client.on("interactionCreate", async (interaction) => {
     // =================================================
     // /room
     // =================================================
-
     if (
       interaction.isChatInputCommand() &&
       interaction.commandName === "room"
@@ -291,22 +289,15 @@ client.on("interactionCreate", async (interaction) => {
             .setStyle(ButtonStyle.Secondary)
         );
 
-      await interaction.deferReply({
-        ephemeral: true
-      });
-
-      await interaction.channel.send({
+      await interaction.reply({
         embeds: [embed],
         components: [row1, row2]
       });
-
-      await interaction.deleteReply();
     }
 
     // =================================================
     // BUTTONS
     // =================================================
-
     if (interaction.isButton()) {
 
       const member = interaction.member;
@@ -345,7 +336,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // ===== ตรวจสอบเจ้าของ =====
+      // ===== เช็คเจ้าของ =====
       if (
         !data ||
         data.owner !== member.id
@@ -375,7 +366,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.showModal(modal);
       }
 
-      // ===== จำกัดคน =====
+      // ===== ตั้งจำนวน =====
       if (interaction.customId === "limit") {
 
         const modal = new ModalBuilder()
@@ -394,7 +385,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.showModal(modal);
       }
 
-      // ===== allow deny transfer =====
+      // ===== เมนูเลือกสมาชิก =====
       if (
         ["allow", "deny", "transfer"]
           .includes(interaction.customId)
@@ -416,10 +407,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      await interaction.deferReply({
-        ephemeral: true
-      });
-
       // ===== lock =====
       if (interaction.customId === "lock") {
 
@@ -430,8 +417,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "🔒 ล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔒 ล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -445,8 +433,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "🔓 ปลดล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔓 ปลดล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -468,8 +457,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "🙈 ซ่อนห้องแล้ว"
+        return interaction.reply({
+          content: "🙈 ซ่อนห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -483,8 +473,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "👁 แสดงห้องแล้ว"
+        return interaction.reply({
+          content: "👁 แสดงห้องแล้ว",
+          ephemeral: true
         });
       }
     }
@@ -492,7 +483,6 @@ client.on("interactionCreate", async (interaction) => {
     // =================================================
     // SELECT MENU
     // =================================================
-
     if (interaction.isUserSelectMenu()) {
 
       const channel =
@@ -573,7 +563,6 @@ client.on("interactionCreate", async (interaction) => {
     // =================================================
     // MODAL
     // =================================================
-
     if (interaction.isModalSubmit()) {
 
       const channel =
