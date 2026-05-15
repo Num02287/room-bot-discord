@@ -205,21 +205,29 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===== จัดการเมนูเลือกสมาชิก (Select Menus) =====
-    if (interaction.isUserSelectMenu()) {
-      const channel = interaction.member.voice.channel;
-      const data = tempChannels.get(channel?.id);
-      if (!channel || !data || data.owner !== interaction.member.id) return interaction.reply({ content: "❌ ผิดพลาด", ephemeral: true });
+if (interaction.customId === "select_allow") {
+  await channel.permissionOverwrites.edit(targetId, {
+    Connect: true,
+    ViewChannel: true
+  });
 
-      const targetId = interaction.values[0];
+  return interaction.reply({
+    content: `✅ อนุญาต <@${targetId}> แล้ว`,
+    ephemeral: true
+  });
+}
 
-      if (interaction.customId === "select_allow") {
-        await channel.permissionOverwrites.edit(targetId, { Connect: true, ViewChannel: true });
-        return interaction.reply({ content: `✅ อนุญาต <@${targetId}>`, ephemeral: true });
-      }
-      if (interaction.customId === "select_deny") {
-        await channel.permissionOverwrites.edit(targetId, { Connect: false, ViewChannel: false });
-        return interaction.reply({ content: `🚫 ห้าม <@${targetId}>`, ephemeral: true });
-      }
+if (interaction.customId === "select_deny") {
+  await channel.permissionOverwrites.edit(targetId, {
+    Connect: false,
+    ViewChannel: true
+  });
+
+  return interaction.reply({
+    content: `🚫 ห้าม <@${targetId}> เข้าห้อง`,
+    ephemeral: true
+  });
+}
       if (interaction.customId === "select_transfer") {
         data.owner = targetId;
         const user = channel.members.get(targetId);
