@@ -15,16 +15,18 @@ const {
   TextInputStyle
 } = require("discord.js");
 
-const express = require('express');
+const express = require("express");
 
-// ===== Web Server =====
+// ===== WEB SERVER =====
 const app = express();
 
-app.get('/', (req, res) => res.send('Bot is Online!'));
+app.get("/", (req, res) => {
+  res.send("Bot is Online!");
+});
 
-app.listen(process.env.PORT || 3000, () =>
-  console.log('Web Server is ready.')
-);
+app.listen(process.env.PORT || 3000, () => {
+  console.log("🌐 Web Server Ready");
+});
 
 // ===== ENV =====
 const token = process.env.TOKEN;
@@ -41,7 +43,7 @@ const client = new Client({
   ]
 });
 
-// ===== TEMP ROOM =====
+// ===== TEMP CHANNELS =====
 const tempChannels = new Map();
 
 // ===== SLASH COMMAND =====
@@ -72,10 +74,10 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง + โอนเจ้าของ + ลบห้อง =====
+// ===== VOICE SYSTEM =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
 
-  // ================= CREATE ROOM =================
+  // ===== CREATE ROOM =====
   if (newState.channelId === createChannelId) {
 
     // เช็คว่ามีห้องอยู่แล้วไหม
@@ -83,7 +85,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       ([id, data]) => data.owner === newState.member.id
     );
 
-    // ถ้ามีห้องอยู่แล้ว → ย้ายกลับเข้าห้องเดิม
+    // ถ้ามีอยู่แล้ว → ย้ายกลับเข้าห้องเดิม
     if (existingRoom) {
 
       const oldRoom =
@@ -104,7 +106,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     // ย้ายเข้าห้อง
     await newState.setChannel(channel);
 
-    // บันทึกเจ้าของ
+    // ตั้งเจ้าของห้องอัตโนมัติ
     tempChannels.set(channel.id, {
       owner: newState.member.id
     });
@@ -112,10 +114,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     return;
   }
 
-  // ================= ROOM SYSTEM =================
+  // ===== ROOM SYSTEM =====
   if (
     oldState.channelId &&
-    oldState.channelId !== createChannelId &&
     tempChannels.has(oldState.channelId)
   ) {
 
@@ -127,7 +128,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
     if (!channel) return;
 
-    // ================= ลบห้องเมื่อไม่มีคน =================
+    // ===== ลบห้องเมื่อไม่มีคน =====
     if (channel.members.size === 0) {
 
       tempChannels.delete(channel.id);
@@ -137,7 +138,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       return;
     }
 
-    // ================= โอนเจ้าของอัตโนมัติ =================
+    // ===== โอนเจ้าของอัตโนมัติ =====
     if (oldState.member.id === data.owner) {
 
       const newOwner = channel.members.first();
@@ -159,7 +160,7 @@ client.on("interactionCreate", async (interaction) => {
 
   try {
 
-    // ===== /room =====
+    // ===== /ROOM =====
     if (
       interaction.isChatInputCommand() &&
       interaction.commandName === "room"
@@ -241,14 +242,10 @@ client.on("interactionCreate", async (interaction) => {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.deferReply({ ephemeral: true });
-
-      await interaction.channel.send({
+      await interaction.reply({
         embeds: [embed],
         components: [row1, row2]
       });
-
-      await interaction.deleteReply();
     }
 
     // ===== BUTTON =====
@@ -284,11 +281,6 @@ client.on("interactionCreate", async (interaction) => {
                 `เจ้าของห้องคือ: <@${data.owner}>`
               )
               .setColor(0xFFD700)
-              .setThumbnail(
-                interaction.guild.members.cache
-                  .get(data.owner)
-                  ?.user.displayAvatarURL()
-              )
           ],
           ephemeral: true
         });
@@ -359,36 +351,37 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      await interaction.deferReply({
-        ephemeral: true
-      });
-
       // ===== LOCK =====
       if (interaction.customId === "lock") {
 
         await channel.permissionOverwrites.edit(
           interaction.guild.id,
-          { Connect: false }
+          {
+            CONNECT: false
+          }
         );
 
         if (allowRoleId) {
 
           await channel.permissionOverwrites.edit(
             allowRoleId,
-            { Connect: false }
-          );
+            {
+              CONNECT: false
+            }
+          ).catch(() => {});
         }
 
         await channel.permissionOverwrites.edit(
           data.owner,
           {
-            Connect: true,
-            ViewChannel: true
+            CONNECT: true,
+            VIEW_CHANNEL: true
           }
         );
 
-        return interaction.editReply({
-          content: "🔒 ล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔒 ล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -397,19 +390,24 @@ client.on("interactionCreate", async (interaction) => {
 
         await channel.permissionOverwrites.edit(
           interaction.guild.id,
-          { Connect: true }
+          {
+            CONNECT: true
+          }
         );
 
         if (allowRoleId) {
 
           await channel.permissionOverwrites.edit(
             allowRoleId,
-            { Connect: true }
-          );
+            {
+              CONNECT: true
+            }
+          ).catch(() => {});
         }
 
-        return interaction.editReply({
-          content: "🔓 ปลดล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔓 ปลดล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -418,27 +416,22 @@ client.on("interactionCreate", async (interaction) => {
 
         await channel.permissionOverwrites.edit(
           interaction.guild.id,
-          { ViewChannel: false }
-        );
-
-        if (allowRoleId) {
-
-          await channel.permissionOverwrites.edit(
-            allowRoleId,
-            { ViewChannel: false }
-          ).catch(() => {});
-        }
-
-        await channel.permissionOverwrites.edit(
-          member.id,
           {
-            ViewChannel: true,
-            Connect: true
+            VIEW_CHANNEL: false
           }
         );
 
-        return interaction.editReply({
-          content: "🙈 ซ่อนห้องแล้ว"
+        await channel.permissionOverwrites.edit(
+          data.owner,
+          {
+            VIEW_CHANNEL: true,
+            CONNECT: true
+          }
+        );
+
+        return interaction.reply({
+          content: "🙈 ซ่อนห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -448,29 +441,19 @@ client.on("interactionCreate", async (interaction) => {
         await channel.permissionOverwrites.edit(
           interaction.guild.id,
           {
-            ViewChannel: true,
-            Connect: false
+            VIEW_CHANNEL: true,
+            CONNECT: true
           }
         );
 
-        if (allowRoleId) {
-
-          await channel.permissionOverwrites.edit(
-            allowRoleId,
-            {
-              ViewChannel: true,
-              Connect: false
-            }
-          ).catch(() => {});
-        }
-
-        return interaction.editReply({
-          content: "👁 แสดงห้องแล้ว"
+        return interaction.reply({
+          content: "👁 แสดงห้องแล้ว",
+          ephemeral: true
         });
       }
     }
 
-    // ===== SELECT MENU =====
+    // ===== USER SELECT =====
     if (interaction.isUserSelectMenu()) {
 
       const channel =
@@ -499,8 +482,8 @@ client.on("interactionCreate", async (interaction) => {
         await channel.permissionOverwrites.edit(
           targetId,
           {
-            Connect: true,
-            ViewChannel: true
+            CONNECT: true,
+            VIEW_CHANNEL: true
           }
         );
 
@@ -516,8 +499,8 @@ client.on("interactionCreate", async (interaction) => {
         await channel.permissionOverwrites.edit(
           targetId,
           {
-            Connect: false,
-            ViewChannel: false
+            CONNECT: false,
+            VIEW_CHANNEL: false
           }
         );
 
@@ -570,8 +553,7 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "rename_room") {
 
         const name =
-          interaction.fields
-            .getTextInputValue("room_name");
+          interaction.fields.getTextInputValue("room_name");
 
         await channel.setName(`📍・${name}`);
 
@@ -585,8 +567,7 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "limit_room") {
 
         const limit = parseInt(
-          interaction.fields
-            .getTextInputValue("limit_input")
+          interaction.fields.getTextInputValue("limit_input")
         );
 
         await channel.setUserLimit(limit || 0);
