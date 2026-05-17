@@ -70,25 +70,12 @@ client.once("ready", async () => {
   } catch (err) {
     console.error(err);
   }
-
-  // ลบห้องค้าง
-  client.guilds.cache.forEach(async guild => {
-    guild.channels.cache.forEach(channel => {
-      if (
-        channel.type === ChannelType.GuildVoice &&
-        channel.parentId === categoryId &&
-        channel.members.size === 0
-      ) {
-        channel.delete().catch(() => {});
-      }
-    });
-  });
 });
 
 // ================= VOICE SYSTEM =================
 client.on("voiceStateUpdate", async (oldState, newState) => {
 
-  // ===== สร้างห้อง =====
+  // ================= CREATE ROOM =================
   if (newState.channelId === createChannelId) {
 
     const channel = await newState.guild.channels.create({
@@ -123,8 +110,12 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     });
   }
 
-  // ===== ลบห้อง / โอนเจ้าของ =====
-  if (oldState.channelId && tempChannels.has(oldState.channelId)) {
+  // ================= OWNER SYSTEM =================
+  if (
+    oldState.channelId &&
+    tempChannels.has(oldState.channelId) &&
+    oldState.channelId !== createChannelId
+  ) {
 
     const channel = oldState.guild.channels.cache.get(oldState.channelId);
     const data = tempChannels.get(oldState.channelId);
@@ -133,8 +124,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
     // ไม่มีคนในห้อง
     if (channel.members.size === 0) {
-      await channel.delete().catch(() => {});
-      tempChannels.delete(oldState.channelId);
       return;
     }
 
@@ -259,7 +248,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const data = tempChannels.get(channel.id);
 
-      // OWNER CHECK
+      // ===== OWNER =====
       if (interaction.customId === "owner") {
 
         if (!data) {
@@ -280,7 +269,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // OWNER ONLY
+      // ===== OWNER ONLY =====
       if (!data || data.owner !== member.id) {
         return interaction.reply({
           content: "❌ คุณไม่ใช่เจ้าของห้อง",
@@ -288,7 +277,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // ===== RENAME =====
+      // ===== NAME =====
       if (interaction.customId === "name") {
 
         const modal = new ModalBuilder()
@@ -347,18 +336,18 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "lock") {
 
         await channel.permissionOverwrites.edit(interaction.guild.id, {
-          [PermissionFlagsBits.Connect]: false
+          Connect: false
         });
 
         if (allowRoleId) {
           await channel.permissionOverwrites.edit(allowRoleId, {
-            [PermissionFlagsBits.Connect]: false
+            Connect: false
           }).catch(() => {});
         }
 
         await channel.permissionOverwrites.edit(member.id, {
-          [PermissionFlagsBits.Connect]: true,
-          [PermissionFlagsBits.ViewChannel]: true
+          Connect: true,
+          ViewChannel: true
         });
 
         return interaction.editReply({
@@ -370,12 +359,12 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "unlock") {
 
         await channel.permissionOverwrites.edit(interaction.guild.id, {
-          [PermissionFlagsBits.Connect]: true
+          Connect: true
         });
 
         if (allowRoleId) {
           await channel.permissionOverwrites.edit(allowRoleId, {
-            [PermissionFlagsBits.Connect]: true
+            Connect: true
           }).catch(() => {});
         }
 
@@ -388,12 +377,12 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "hide") {
 
         await channel.permissionOverwrites.edit(interaction.guild.id, {
-          [PermissionFlagsBits.ViewChannel]: false
+          ViewChannel: false
         });
 
         await channel.permissionOverwrites.edit(member.id, {
-          [PermissionFlagsBits.ViewChannel]: true,
-          [PermissionFlagsBits.Connect]: true
+          ViewChannel: true,
+          Connect: true
         });
 
         return interaction.editReply({
@@ -405,8 +394,8 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "show") {
 
         await channel.permissionOverwrites.edit(interaction.guild.id, {
-          [PermissionFlagsBits.ViewChannel]: true,
-          [PermissionFlagsBits.Connect]: true
+          ViewChannel: true,
+          Connect: true
         });
 
         return interaction.editReply({
@@ -434,8 +423,8 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "select_allow") {
 
         await channel.permissionOverwrites.edit(targetId, {
-          [PermissionFlagsBits.Connect]: true,
-          [PermissionFlagsBits.ViewChannel]: true
+          Connect: true,
+          ViewChannel: true
         });
 
         return interaction.reply({
@@ -448,8 +437,8 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "select_deny") {
 
         await channel.permissionOverwrites.edit(targetId, {
-          [PermissionFlagsBits.Connect]: false,
-          [PermissionFlagsBits.ViewChannel]: false
+          Connect: false,
+          ViewChannel: false
         });
 
         return interaction.reply({
