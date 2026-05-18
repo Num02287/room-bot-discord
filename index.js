@@ -199,9 +199,9 @@ client.on("interactionCreate", async (interaction) => {
       }
           
       if (interaction.customId === "show") {
+        // รีเซ็ตให้ทุกคนกลับมาเห็นห้อง (ใช้ null เพื่อกลับไปใช้ค่าตาม Category หรือตั้งเป็น true)
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
-      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(()=>{});
-        return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
+        return interaction.editReply("👁️ แสดงห้องให้ทุกคนเห็นแล้ว");
       }
     }
 
