@@ -217,7 +217,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({ content: `✅ อนุญาต <@${targetId}>`, ephemeral: true });
       }
       if (interaction.customId === "select_deny") {
-        await channel.permissionOverwrites.edit(targetId, { Connect: false, ViewChannel: false });
+        await channel.permissionOverwrites.edit(targetId, { Connect: false, ViewChannel: true });
         return interaction.reply({ content: `🚫 ห้าม <@${targetId}>`, ephemeral: true });
       }
       if (interaction.customId === "select_transfer") {
