@@ -187,10 +187,9 @@ const embed = new EmbedBuilder()
         return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
       }
 
-      if (interaction.customId === "show") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
-      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(()=>{});
-        return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
+    if (interaction.customId === "show") {
+      await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
+      return interaction.editReply("👁️ แสดงห้องแล้ว");
       }
     }
 
