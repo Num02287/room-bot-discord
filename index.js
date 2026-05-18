@@ -96,33 +96,33 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     }
   }
 });
-      const embed = new EmbedBuilder()
-        .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-        .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ")
-        .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
-        .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
-        .setColor(0x2b2d31);
+const embed = new EmbedBuilder()
+    .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
+    .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ")
+    .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
+    .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
+    .setColor(0x2b2d31);
 
-      const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("name").setEmoji("✏️").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("lock").setEmoji("🔒").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("unlock").setEmoji("🔓").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("limit").setEmoji("🎯").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("owner").setEmoji("👑").setStyle(ButtonStyle.Secondary)
-      );
+  const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId("name").setEmoji("✏️").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("lock").setEmoji("🔒").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("unlock").setEmoji("🔓").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("limit").setEmoji("🎯").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("owner").setEmoji("👑").setStyle(ButtonStyle.Secondary)
+  );
 
-      const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("hide").setEmoji("🙈").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("show").setEmoji("👁").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("transfer").setEmoji("🔁").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("allow").setEmoji("🧑‍🤝‍🧑").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("deny").setEmoji("🚫").setStyle(ButtonStyle.Secondary)
-      );
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId("hide").setEmoji("🙈").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("show").setEmoji("👁").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("transfer").setEmoji("🔁").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("allow").setEmoji("🧑‍🤝‍🧑").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId("deny").setEmoji("🚫").setStyle(ButtonStyle.Secondary)
+  );
 
-      await interaction.deferReply({ ephemeral: true });
-      await interaction.channel.send({ embeds: [embed], components: [row1, row2] });
-      await interaction.deleteReply();
-    }
+  await interaction.deferReply({ ephemeral: true });
+  await interaction.channel.send({ embeds: [embed], components: [row1, row2] });
+  await interaction.deleteReply();
+}
 
     // ===== จัดการปุ่มกด (Buttons) =====
     if (interaction.isButton()) {
