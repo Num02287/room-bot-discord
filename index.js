@@ -191,10 +191,11 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "hide") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
-      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
-        await channel.permissionOverwrites.edit(member.id, { ViewChannel: true });
-        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
+        await channel.permissionOverwrites.set([
+          { id: interaction.guild.id, deny: ["ViewChannel"] },
+          { id: member.id, allow: ["ViewChannel"] }
+        ]);
+        return interaction.editReply("🙈 ซ่อนห้องแล้ว");
       }
           
       if (interaction.customId === "show") {
