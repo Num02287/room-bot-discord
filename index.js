@@ -176,10 +176,10 @@ const embed = new EmbedBuilder()
 
       if (interaction.customId === "unlock") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true });
+      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true });
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
-
+      
       if (interaction.customId === "hide") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
         if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(()=>{});
