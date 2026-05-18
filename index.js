@@ -198,8 +198,8 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "show") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true });
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true });
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false });
+        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: false }).catch(()=>{});
         return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
       }
     }
