@@ -191,12 +191,12 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "hide") {
+        // ล้างค่าเก่าและสั่งปิด ViewChannel
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
-  
-        // สำคัญ: ต้องเจาะจงให้เจ้าของยังเห็น ไม่งั้นห้องจะหายไปจากจอเจ้าของด้วย
-        await channel.permissionOverwrites.edit(member.id, { ViewChannel: true });
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
+      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
+        // บังคับให้เจ้าของห้องยังต้องเห็น
+        await channel.permissionOverwrites.edit(interaction.user.id, { ViewChannel: true });
+        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
       }
 
       if (interaction.customId === "show") {
