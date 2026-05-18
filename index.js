@@ -180,7 +180,7 @@ const embed = new EmbedBuilder()
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
       
-      if (interaction.customId === "hide") {
+     if (interaction.customId === "hide") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
         if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(()=>{});
         await channel.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true });
