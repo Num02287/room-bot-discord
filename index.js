@@ -96,16 +96,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     }
   }
 });
-
-// ===== ระบบ Interaction (Buttons, Menus, Modals) =====
-client.on("interactionCreate", async (interaction) => {
-  try {
-    // ===== /room (สำหรับแอดมิน) =====
-    if (interaction.isChatInputCommand() && interaction.commandName === "room") {
-      if (!interaction.member.permissions.has("Administrator")) {
-        return interaction.reply({ content: "❌ คำสั่งนี้สำหรับแอดมินเท่านั้น", ephemeral: true });
-      }
-
       const embed = new EmbedBuilder()
         .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
         .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ")
