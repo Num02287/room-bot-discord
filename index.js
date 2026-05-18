@@ -17,7 +17,7 @@ const {
 
 const express = require('express');
 
-// ===== Web Server สำหรับ Render =====
+// ===== Web Server สำหรับรันบน Render =====
 const app = express();
 app.get('/', (req, res) => res.send('Bot is Online!'));
 app.listen(process.env.PORT || 3000, () => console.log('Web Server is ready.'));
@@ -88,9 +88,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 });
 
-// ===== ระบบ Interaction (ตอบทันที / เลือกได้หลายคน / มองเห็นห้องทั้งคู่) =====
+// ===== ระบบ Interaction (ตอบทันทีและมองเห็นห้องได้ทั้งคู่) =====
 client.on("interactionCreate", async (interaction) => {
   try {
+    // 1. คำสั่ง /room
     if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       if (!interaction.member.permissions.has("Administrator")) {
         return interaction.reply({ content: "❌ สำหรับแอดมินเท่านั้น", ephemeral: true });
@@ -123,6 +124,7 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.reply({ content: "✅ ติดตั้งเมนูควบคุมเรียบร้อย", ephemeral: true });
     }
 
+    // 2. ปุ่มกด (Buttons)
     if (interaction.isButton()) {
       const channel = interaction.member.voice.channel;
       if (!channel) return interaction.reply({ content: "❌ คุณต้องอยู่ในห้องเสียงก่อน", ephemeral: true });
@@ -151,27 +153,18 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (["allow", "deny", "transfer"].includes(interaction.customId)) {
-        const isTransfer = interaction.customId === "transfer";
-        const menu = new UserSelectMenuBuilder()
-          .setCustomId(`select_${interaction.customId}`)
-          .setPlaceholder(isTransfer ? "เลือกสมาชิก 1 คนเพื่อโอนห้อง" : "เลือกสมาชิก (เลือกได้หลายคน)")
-          .setMinValues(1)
-          .setMaxValues(isTransfer ? 1 : 10); // อนุญาต/บล็อก เลือกได้สูงสุด 10 คน
-
-        return interaction.reply({ 
-          content: "👤 โปรดเลือกสมาชิกที่ต้องการ", 
-          components: [new ActionRowBuilder().addComponents(menu)], 
-          ephemeral: true 
-        });
+        const menu = new UserSelectMenuBuilder().setCustomId(`select_${interaction.customId}`).setPlaceholder("เลือกสมาชิก...");
+        return interaction.reply({ content: "👤 โปรดเลือกสมาชิก", components: [new ActionRowBuilder().addComponents(menu)], ephemeral: true });
       }
 
+      // คำสั่งล็อก/ซ่อนห้อง (ตอบทันที)
       if (interaction.customId === "lock") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
-        return interaction.reply({ content: "🔒 ล็อกห้องแล้ว (ยังมองเห็นแต่เข้าไม่ได้)", ephemeral: true });
+        return interaction.reply({ content: "🔒 ล็อกห้องเรียบร้อย (เห็นห้องแต่เข้าไม่ได้)", ephemeral: true });
       }
       if (interaction.customId === "unlock") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
-        return interaction.reply({ content: "🔓 ปลดล็อกห้องแล้ว", ephemeral: true });
+        return interaction.reply({ content: "🔓 ปลดล็อกห้องเรียบร้อย", ephemeral: true });
       }
       if (interaction.customId === "hide") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
@@ -183,28 +176,22 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
 
+    // 3. เมนูเลือกสมาชิก (อนุญาต/บล็อก ให้มองเห็นทั้งคู่)
     if (interaction.isUserSelectMenu()) {
       const channel = interaction.member.voice.channel;
-      const targetIds = interaction.values;
+      const targetId = interaction.values[0];
 
       if (interaction.customId === "select_allow") {
-        for (const id of targetIds) {
-          await channel.permissionOverwrites.edit(id, { ViewChannel: true, Connect: true });
-        }
-        return interaction.reply({ content: `✅ อนุญาตสมาชิก (${targetIds.length} คน) เรียบร้อย`, ephemeral: true });
+        await channel.permissionOverwrites.edit(targetId, { ViewChannel: true, Connect: true });
+        return interaction.reply({ content: `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้`, ephemeral: true });
       }
-
       if (interaction.customId === "select_deny") {
-        for (const id of targetIds) {
-          await channel.permissionOverwrites.edit(id, { ViewChannel: true, Connect: false });
-          const targetMember = channel.members.get(id);
-          if (targetMember) targetMember.voice.disconnect().catch(()=>{});
-        }
-        return interaction.reply({ content: `🚫 บล็อกสมาชิก (${targetIds.length} คน) เรียบร้อย (ยังมองเห็นห้องอยู่)`, ephemeral: true });
+        await channel.permissionOverwrites.edit(targetId, { ViewChannel: true, Connect: false });
+        const targetMember = channel.members.get(targetId);
+        if (targetMember) targetMember.voice.disconnect().catch(()=>{});
+        return interaction.reply({ content: `🚫 บล็อก <@${targetId}> (ยังมองเห็นห้องแต่เข้าไม่ได้)`, ephemeral: true });
       }
-
       if (interaction.customId === "select_transfer") {
-        const targetId = targetIds[0];
         const data = tempChannels.get(channel.id);
         data.owner = targetId;
         const user = await client.users.fetch(targetId);
@@ -213,6 +200,7 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
 
+    // 4. จัดการ Modal
     if (interaction.isModalSubmit()) {
       const channel = interaction.member.voice.channel;
       if (interaction.customId === "rename_room") {
