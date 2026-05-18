@@ -190,12 +190,11 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
 
-      if (interaction.customId === "hide") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(()=>{});
-        await channel.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true });
-        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
-      }
+      if (interaction.customId === "hide") {
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
+      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
+        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
+      }
 
       if (interaction.customId === "show") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
