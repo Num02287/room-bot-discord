@@ -1,4 +1,3 @@
-แก้ห้ามเข้าให้แสดงห้อง
 const {
   Client,
   GatewayIntentBits,
@@ -103,6 +102,8 @@ client.on("interactionCreate", async (interaction) => {
   try {
     // ===== /room (สำหรับแอดมิน) =====
     if (interaction.isChatInputCommand() && interaction.commandName === "room") {
+      if (!interaction.member.permissions.has("Administrator")) {
+        return interaction.reply({ content: "❌ คำสั่งนี้สำหรับแอดมินเท่านั้น", ephemeral: true });
       }
 
       const embed = new EmbedBuilder()
