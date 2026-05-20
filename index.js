@@ -45,7 +45,7 @@ const client = new Client({
 
 const tempChannels = new Map();
 
-// ===== Slash Commands =====
+// ===== SLASH COMMAND =====
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
@@ -78,7 +78,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
   try {
 
-    // ===== CREATE =====
     if (newState.channelId === createChannelId) {
 
       const channel = await newState.guild.channels.create({
@@ -94,7 +93,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       });
     }
 
-    // ===== DELETE / TRANSFER =====
     if (oldState.channelId && tempChannels.has(oldState.channelId)) {
 
       const channel =
@@ -142,21 +140,17 @@ client.on("interactionCreate", async (interaction) => {
 
   try {
 
-    // ===== SLASH COMMAND =====
+    // ===== SLASH =====
     if (interaction.isChatInputCommand()) {
 
       if (interaction.commandName === "room") {
 
         const embed = new EmbedBuilder()
-          .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
+          .setTitle("🏠 ระบบสร้างห้องส่วนตัว")
           .setDescription(
-            "🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n" +
-            "🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ"
+            "🔹 จัดการห้องส่วนตัวของคุณ\n" +
+            "🔹 ล็อก / ซ่อน / เปลี่ยนชื่อ / จำกัดคน"
           )
-          .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
-          .setFooter({
-            text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ"
-          })
           .setColor(0x2b2d31);
 
         const row1 = new ActionRowBuilder().addComponents(
@@ -238,26 +232,11 @@ client.on("interactionCreate", async (interaction) => {
 
       const data = tempChannels.get(channel.id);
 
-      // ===== OWNER =====
+      // ===== OWNER INFO =====
       if (interaction.customId === "owner") {
 
-        if (!data) {
-
-          return interaction.reply({
-            content: "❌ ห้องนี้ไม่ได้อยู่ในระบบ",
-            ephemeral: true
-          });
-        }
-
         return interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("👑 เจ้าของห้อง")
-              .setDescription(
-                `เจ้าของห้องคือ: <@${data.owner}>`
-              )
-              .setColor(0xFFD700)
-          ],
+          content: `👑 เจ้าของห้อง: <@${data.owner}>`,
           ephemeral: true
         });
       }
@@ -271,7 +250,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // ===== RENAME =====
+      // ===== NAME =====
       if (interaction.customId === "name") {
 
         const modal = new ModalBuilder()
@@ -299,7 +278,7 @@ client.on("interactionCreate", async (interaction) => {
 
         const input = new TextInputBuilder()
           .setCustomId("limit_input")
-          .setLabel("ใส่จำนวน (0 = ไม่จำกัด)")
+          .setLabel("ใส่จำนวน")
           .setStyle(TextInputStyle.Short);
 
         modal.addComponents(
@@ -309,7 +288,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.showModal(modal);
       }
 
-      // ===== SELECT USER =====
+      // ===== SELECT MENU =====
       if (
         ["allow", "deny", "transfer"]
           .includes(interaction.customId)
@@ -319,17 +298,12 @@ client.on("interactionCreate", async (interaction) => {
           .setCustomId(`select_${interaction.customId}`);
 
         return interaction.reply({
-          content: "โปรดเลือกสมาชิก",
+          content: "เลือกสมาชิก",
           components: [
             new ActionRowBuilder().addComponents(menu)
           ],
           ephemeral: true
         });
-      }
-
-      // ===== FIX LOADING =====
-      if (!interaction.deferred && !interaction.replied) {
-        await interaction.deferReply({ ephemeral: true });
       }
 
       // ===== LOCK =====
@@ -361,8 +335,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "🔒 ล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔒 ล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -386,8 +361,9 @@ client.on("interactionCreate", async (interaction) => {
           ).catch(() => {});
         }
 
-        return interaction.editReply({
-          content: "🔓 ปลดล็อกห้องแล้ว"
+        return interaction.reply({
+          content: "🔓 ปลดล็อกห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -405,7 +381,7 @@ client.on("interactionCreate", async (interaction) => {
               }
             );
 
-          } catch (err) {}
+          } catch {}
         }
 
         await channel.permissionOverwrites.edit(
@@ -417,8 +393,9 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.editReply({
-          content: "🙈 ซ่อนห้องแล้ว"
+        return interaction.reply({
+          content: "🙈 ซ่อนห้องแล้ว",
+          ephemeral: true
         });
       }
 
@@ -456,13 +433,13 @@ client.on("interactionCreate", async (interaction) => {
           data.owner,
           {
             ViewChannel: true,
-            Connect: true,
-            Speak: true
+            Connect: true
           }
         );
 
-        return interaction.editReply({
-          content: "👁 แสดงห้องแล้ว"
+        return interaction.reply({
+          content: "👁 แสดงห้องแล้ว",
+          ephemeral: true
         });
       }
     }
@@ -471,7 +448,6 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isUserSelectMenu()) {
 
       const channel = interaction.member.voice.channel;
-
       const data = tempChannels.get(channel?.id);
 
       if (
@@ -517,7 +493,7 @@ client.on("interactionCreate", async (interaction) => {
         );
 
         return interaction.reply({
-          content: `🚫 ห้าม <@${targetId}>`,
+          content: `🚫 บล็อก <@${targetId}>`,
           ephemeral: true
         });
       }
@@ -544,7 +520,6 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isModalSubmit()) {
 
       const channel = interaction.member.voice.channel;
-
       const data = tempChannels.get(channel?.id);
 
       if (
