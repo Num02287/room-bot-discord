@@ -181,38 +181,50 @@ const embed = new EmbedBuilder()
       }
       
 if (interaction.customId === "hide") {
-        // 1. ล้างสิทธิ์เก่าของยศทุกคน (@everyone) เพื่อไม่ให้สิทธิ์จาก Category มาค้ำไว้
-        await channel.permissionOverwrites.delete(interaction.guild.id).catch(() => {});
-        if (allowRoleId) {
-          await channel.permissionOverwrites.delete(allowRoleId).catch(() => {});
+        // 1. ดึงข้อมูล Overwrites ทั้งหมดที่ตั้งค่าไว้ในห้องตอนนี้มาล้างทิ้งก่อน (ยกเว้นของบอทเอง)
+        const currentOverwrites = channel.permissionOverwrites.cache;
+        for (const [id, overwrite] of currentOverwrites) {
+          if (id !== client.user.id) {
+            await channel.permissionOverwrites.delete(id).catch(() => {});
+          }
         }
 
-        // 2. สั่งปิดการมองเห็นของทุกคน สมาชิกธรรมดาจะมองไม่เห็นห้องนี้ทันที
+        // 2. สั่งปิดตา @everyone (ยศพื้นฐานของทุกคน) ไม่ให้มองเห็นห้อง
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false }).catch(() => {});
         
-        if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
+        // 3. จัดการ "ยศพิเศษทั้งหมดในเซิร์ฟเวอร์" เพื่อป้องกันไม่ให้ยศอื่น ๆ มาเบียดบังคำสั่งปิดตา
+        // บอทจะวนลูปปิดสิทธิ์ ViewChannel ของทุกโรลที่มีอยู่ในดิสคอร์ด (ยกเว้นยศบอท และ ยศแอดมิน)
+        const roles = await interaction.guild.roles.fetch().catch(() => []);
+        for (const [roleId, role] of roles) {
+          if (!role.managed && !role.permissions.has("Administrator") && roleId !== interaction.guild.id) {
+            await channel.permissionOverwrites.edit(roleId, { ViewChannel: false }).catch(() => {});
+          }
         }
-        
-        // 3. เปิดให้เจ้าของห้องยังมองเห็นและเข้าใช้งานได้ปกติ
+
+        // 4. เปิดสิทธิ์ให้ "เจ้าของห้อง" ให้เห็นและเข้าห้องได้ปกติ
         await channel.permissionOverwrites.edit(data.owner, { ViewChannel: true, Connect: true }).catch(() => {});
         
-        // 4. คนที่นั่งอยู่ในห้อง ณ ตอนนั้น ให้ล็อกสิทธิ์ให้เขาเห็นห้องต่อได้ จะได้ไม่หลุด
+        // 5. เปิดสิทธิ์ให้ "คนที่นั่งอยู่ในห้องตอนนั้น" ให้ยังเห็นห้องอยู่ จะได้คุยต่อได้ไม่เด้งหลุด
         channel.members.forEach(async (roomMember) => {
           await channel.permissionOverwrites.edit(roomMember.id, { ViewChannel: true, Connect: true }).catch(() => {});
         });
 
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
+        return interaction.editReply({ content: "🙈 ปิดการมองเห็นห้องนี้จากทุกยศเรียบร้อยแล้วครับ! (สมาชิกธรรมดาทั้งหมดจะไม่เห็นห้องนี้แล้ว)" });
       }
 
       if (interaction.customId === "show") {
-        // ล้างค่าซ่อนห้อง และเปิดให้สิทธิ์กลับไปอิงตามหมวดหมู่/เซิร์ฟเวอร์ปกติ (ทุกคนกลับมาเห็น)
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true }).catch(() => {});
-        if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(() => {});
+        // ล้างสิทธิ์ Overwrites ของยศต่าง ๆ ออก เพื่อให้ห้องกลับไปอิงสิทธิ์ตามหมวดหมู่ปกติ (ทุกคนกลับมาเห็น)
+        const currentOverwrites = channel.permissionOverwrites.cache;
+        for (const [id, overwrite] of currentOverwrites) {
+          if (id !== data.owner && id !== client.user.id && !channel.members.has(id)) {
+            await channel.permissionOverwrites.delete(id).catch(() => {});
+          }
         }
+
+        // เปิดสิทธิ์ให้ @everyone กลับมามองเห็นห้อง
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true }).catch(() => {});
         
-        return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
+        return interaction.editReply({ content: "👁 เปิดให้สมาชิกทุกยศสามารถมองเห็นห้องนี้ได้ตามปกติแล้วครับ" });
       }
     }
 
