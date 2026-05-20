@@ -287,18 +287,6 @@ if (interaction.customId === "hide") {
     ViewChannel: false,
   });
 
-  if (allowRoleId) {
-    await channel.permissionOverwrites.edit(allowRoleId, {
-      Connect: false,
-      ViewChannel: false,
-    });
-  }
-
-  await channel.permissionOverwrites.edit(member.id, {
-    Connect: true,
-    ViewChannel: true,
-  });
-
   return interaction.reply({
     content: `🙈 ซ่อนห้องแล้ว`,
     ephemeral: true,
