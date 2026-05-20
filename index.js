@@ -394,12 +394,16 @@ client.on("interactionCreate", async (interaction) => {
         // ซ่อนทุก role
         for (const role of interaction.guild.roles.cache.values()) {
 
-          await channel.permissionOverwrites.edit(
-            role.id,
-            {
-              ViewChannel: false
-            }
-          ).catch(() => {});
+          try {
+
+            await channel.permissionOverwrites.edit(
+              role.id,
+              {
+                ViewChannel: false
+              }
+            );
+
+          } catch (err) {}
         }
 
         // เจ้าของยังเห็นและเข้าได้
