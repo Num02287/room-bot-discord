@@ -281,15 +281,23 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
 
-if (interaction.customId === "hide") {
-  await channel.permissionOverwrites.edit(interaction.guild.id, {
-    Connect: false,
-    ViewChannel: false,
+      if (interaction.customId === "hide") {
+        await channel.permissionOverwrites.edit(interaction.guild.id, {
+            Connect: false,
+            ViewChannel: false,
+          });
+      if (allowRoleId)
+        await channel.permissionOverwrites.edit(allowRoleId, {
+            Connect: false,
+            ViewChannel: false,
+          });
+  await channel.permissionOverwrites.edit(data.owner, {
+    Connect: true,
+    ViewChannel: true,
   });
 
-  return interaction.reply({
+  return interaction.editReply({
     content: `🙈 ซ่อนห้องแล้ว`,
-    ephemeral: true,
   });
 }
 
@@ -325,17 +333,18 @@ if (interaction.customId === "hide") {
           ephemeral: true,
         });
       }
- if (interaction.customId === "select_deny") {
-  await channel.permissionOverwrites.edit(targetId, {
-    Connect: false,
-    ViewChannel: false,
-  });
-
-  return interaction.reply({
-    content: `🚫 ห้าม <@${targetId}> `,
-    ephemeral: true,
-  });
-}
+      
+    if (interaction.customId === "select_deny") {
+        await channel.permissionOverwrites.edit(targetId, {
+          Connect: false,
+          ViewChannel: true,
+        });
+        return interaction.reply({
+          content: `🚫 ห้าม <@${targetId}> เข้าแล้ว`,
+          ephemeral: true,
+        });
+      }
+      
       if (interaction.customId === "select_transfer") {
         data.owner = targetId;
         const user = channel.members.get(targetId);
