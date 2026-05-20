@@ -281,20 +281,35 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
 
-      if (interaction.customId === "hide") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
+if (interaction.customId === "hide") {
+  const guild = interaction.guild;
 
-        if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(()=>{});
-        }
+  // 🔒 ปิด @everyone (ห้ามเห็น + ห้ามเข้า)
+  await channel.permissionOverwrites.edit(guild.id, {
+    ViewChannel: false,
+    Connect: false,
+  }).catch(() => {});
 
-        await channel.permissionOverwrites.edit(member.id, {
-          ViewChannel: true,
-          Connect: true
-        });
+  // 🔒 ปิด role ทั้งหมดที่อาจเห็นห้อง
+  guild.roles.cache.forEach((role) => {
+    if (role.id === guild.id) return;
 
-        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
-      }
+    channel.permissionOverwrites.edit(role.id, {
+      ViewChannel: false,
+      Connect: false,
+    }).catch(() => {});
+  });
+
+  // 👑 เจ้าของยังเห็นและเข้าได้
+  await channel.permissionOverwrites.edit(data.owner, {
+    ViewChannel: true,
+    Connect: true,
+  }).catch(() => {});
+
+  return interaction.editReply({
+    content: "🙈 ซ่อนห้องแล้ว (คนอื่นไม่เห็นแล้ว)",
+  });
+}
       
       if (interaction.customId === "show") {
         await channel.permissionOverwrites.edit(interaction.guild.id, {
