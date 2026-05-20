@@ -54,13 +54,14 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง (บล็อกคนไม่มียศ แต่เปิดให้คนมียศอื่นเข้าได้) และโอนเจ้าของ =====
+// ===== ระบบสร้างห้อง (บล็อกคนไม่มียศ, ดึงทุกยศ, ย้ายคนที่มียศทั้งหมดเข้าห้องใหม่) =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     // 1. ตอนสร้างห้องใหม่
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
+      const createChannel = newState.guild.channels.cache.get(createChannelId);
 
       const channel = await newState.guild.channels.create({
         name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
@@ -83,7 +84,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         ]
       });
 
-      // 🛠 ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
+      // 🛠 1. ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
       const roles = await newState.guild.roles.fetch().catch(() => []);
       for (const [roleId, role] of roles) {
         if (!role.managed && roleId !== guildId) {
@@ -91,11 +92,21 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         }
       }
 
-      // ย้ายคนสร้างเข้าห้องใหม่
-      await newState.setChannel(channel);
-
-      // บันทึกเจ้าของห้อง
+      // บันทึกเจ้าของห้องในระบบก่อนย้ายคนอื่น
       tempChannels.set(channel.id, { owner: ownerId });
+
+      // 🛠 2. ย้ายคนที่มียศทุกคนที่ยังค้างอยู่ในห้องสร้างหลัก (Create Channel) ตามเข้ามาในห้องใหม่ทันที
+      if (createChannel && createChannel.members) {
+        for (const [memberId, member] of createChannel.members) {
+          // ตรวจสอบ: ถ้าย้ายตัวเจ้าของห้องเอง หรือคนนั้นมีบทบาทติดตัว (มียศมากกว่า 1 ยศขึ้นไป เพราะยศแรกคือ @everyone)
+          if (memberId === ownerId || member.roles.cache.size > 1) {
+            await member.voice.setChannel(channel).catch(() => {});
+          }
+        }
+      } else {
+        // กรณีฉุกเฉินดักไว้: ถ้าระบบกวาดลูปห้องหลักไม่ทัน ให้ย้ายเจ้าของห้องเข้าห้องก่อนชัวร์ ๆ
+        await newState.setChannel(channel).catch(() => {});
+      }
     }
 
     // 2. จัดการเมื่อคนออกจากห้อง
@@ -217,14 +228,22 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว คนอื่นจะไม่สามารถกดจอยเข้ามาได้" });
       }
 
+      // ปุ่มปลดล็อก: กลับไปล็อกคนไม่มียศเหมือนตอนสร้างห้องใหม่
       if (interaction.customId === "unlock") {
+        const guildId = interaction.guild.id;
+
+        // บล็อกยศ @everyone ไม่ให้เชื่อมต่อเหมือนตอนสร้างห้องใหม่
+        await channel.permissionOverwrites.edit(guildId, { Connect: false, ViewChannel: true }).catch(() => {});
+        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false, ViewChannel: true }).catch(() => {});
+
+        // ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เชื่อมต่อให้คนมียศเข้าได้ปกติ
         const roles = await interaction.guild.roles.fetch().catch(() => []);
         for (const [roleId, role] of roles) {
-          if (!role.managed && roleId !== interaction.guild.id) {
-            await channel.permissionOverwrites.edit(roleId, { Connect: true }).catch(() => {});
+          if (!role.managed && roleId !== guildId) {
+            await channel.permissionOverwrites.edit(roleId, { Connect: true, ViewChannel: true }).catch(() => {});
           }
         }
-        return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว คนมียศทุกคนสามารถจอยเข้าห้องได้ปกติ" });
+        return interaction.editReply({ content: "🔓 คืนค่าห้องเรียบร้อยแล้ว! ตอนนี้สมาชิกที่มียศทุกคนสามารถกดจอยเข้าห้องได้ตามปกติ (คนไม่มียศจะเข้าไม่ได้เหมือนเดิม)" });
       }
       
       // ปุ่มซ่อนห้อง: กวาดล้างและปิดการมองเห็นทุกยศรวมถึงคนไม่มียศ
