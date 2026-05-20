@@ -42,7 +42,7 @@ const tempChannels = new Map();
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
-    .setDescription("เรียกแผงควบคุมสร้างห้องส่วนตัว")
+    .setDescription("เรียกแผงควบคุมสร้างห้องส่วนตัว (ระบบสร้างห้อง) ")
     .setDMPermission(false) 
 ].map(c => c.toJSON());
 
