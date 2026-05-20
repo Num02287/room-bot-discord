@@ -161,7 +161,20 @@ client.on("interactionCreate", async (interaction) => {
         new ButtonBuilder().setCustomId("deny").setEmoji("🚫").setStyle(ButtonStyle.Secondary)
       );
 
-      return interaction.deleteReply();
+   // 1. เรียกแผงควบคุมด้วยคำสั่ง (/room)
+if (interaction.isChatInputCommand() && interaction.commandName === "room") {
+    
+    // 1. ส่ง Embed และปุ่มเข้าไปในแชทโดยตรง (ใช้ channel.send)
+    await interaction.channel.send({ 
+        embeds: [embed], 
+        components: [row1, row2] 
+    });
+
+    // 2. ตอบรับคำสั่งแบบเงียบๆ เพื่อไม่ให้บอทขึ้นว่า "Interaction Failed"
+    // แล้วลบคำสั่งที่ผู้ใช้พิมพ์ทิ้งทันที
+    await interaction.reply({ content: "กำลังสร้างแผงควบคุม...", ephemeral: true });
+    return interaction.deleteReply(); 
+}
     }
 
     // 2. จัดการปุ่มกดต่าง ๆ (Buttons)
