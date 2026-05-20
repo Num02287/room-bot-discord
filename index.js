@@ -282,21 +282,25 @@ client.on("interactionCreate", async (interaction) => {
       }
 
 if (interaction.customId === "hide") {
-  // ซ่อนจาก @everyone
-  await channel.permissionOverwrites.edit(interaction.guild.id, {
+  const guild = interaction.guild;
+
+  // 1. ซ่อนจาก @everyone (สำคัญสุด)
+  await channel.permissionOverwrites.edit(guild.id, {
     ViewChannel: false,
     Connect: false,
   }).catch(() => {});
 
-  // ซ่อนจาก role อื่น (ถ้ามีสิทธิ์เดิมหลุดมา)
-  if (allowRoleId) {
-    await channel.permissionOverwrites.edit(allowRoleId, {
+  // 2. ไล่ปิดทุก role ในเซิร์ฟเวอร์ (กันหลุด)
+  guild.roles.cache.forEach(async (role) => {
+    if (role.id === guild.id) return; // ข้าม @everyone (ทำไปแล้ว)
+
+    await channel.permissionOverwrites.edit(role.id, {
       ViewChannel: false,
       Connect: false,
     }).catch(() => {});
-  }
+  });
 
-  // 👑 เจ้าของต้องเห็นเสมอ
+  // 3. เจ้าของยังเห็นเสมอ
   await channel.permissionOverwrites.edit(data.owner, {
     ViewChannel: true,
     Connect: true,
