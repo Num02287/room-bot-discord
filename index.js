@@ -202,7 +202,7 @@ if (interaction.customId === "hide") {
           await channel.permissionOverwrites.edit(roomMember.id, { ViewChannel: true, Connect: true }).catch(() => {});
         });
 
-        return interaction.editReply({ content: "🙈 ซ่อนห้องจากสมาชิกธรรมดาเรียบร้อยแล้วครับ" });
+        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
       }
 
       if (interaction.customId === "show") {
@@ -212,12 +212,6 @@ if (interaction.customId === "hide") {
           await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(() => {});
         }
         
-        return interaction.editReply({ content: "👁 แสดงห้องให้ทุกคนเห็นตามปกติแล้วครับ" });
-      }
-
-      if (interaction.customId === "show") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
-      if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(()=>{});
         return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
       }
     }
