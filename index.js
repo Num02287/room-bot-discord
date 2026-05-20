@@ -327,15 +327,30 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
+      // ===== FIX LOADING =====
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+      }
+
       // ===== LOCK =====
       if (interaction.customId === "lock") {
 
         await channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone,
+          interaction.guild.roles.everyone.id,
           {
             Connect: false
           }
         );
+
+        if (allowRoleId) {
+
+          await channel.permissionOverwrites.edit(
+            allowRoleId,
+            {
+              Connect: false
+            }
+          ).catch(() => {});
+        }
 
         await channel.permissionOverwrites.edit(
           data.owner,
@@ -346,9 +361,8 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.reply({
-          content: "🔒 ล็อกห้องแล้ว",
-          ephemeral: true
+        return interaction.editReply({
+          content: "🔒 ล็อกห้องแล้ว"
         });
       }
 
@@ -356,15 +370,24 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "unlock") {
 
         await channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone,
+          interaction.guild.roles.everyone.id,
           {
             Connect: true
           }
         );
 
-        return interaction.reply({
-          content: "🔓 ปลดล็อกห้องแล้ว",
-          ephemeral: true
+        if (allowRoleId) {
+
+          await channel.permissionOverwrites.edit(
+            allowRoleId,
+            {
+              Connect: true
+            }
+          ).catch(() => {});
+        }
+
+        return interaction.editReply({
+          content: "🔓 ปลดล็อกห้องแล้ว"
         });
       }
 
@@ -386,13 +409,6 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         await channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone,
-          {
-            ViewChannel: false
-          }
-        );
-
-        await channel.permissionOverwrites.edit(
           data.owner,
           {
             ViewChannel: true,
@@ -401,9 +417,8 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.reply({
-          content: "🙈 ซ่อนห้องแล้ว",
-          ephemeral: true
+        return interaction.editReply({
+          content: "🙈 ซ่อนห้องแล้ว"
         });
       }
 
@@ -416,10 +431,10 @@ client.on("interactionCreate", async (interaction) => {
           );
 
         const isLocked =
-          everyoneOverwrite?.deny?.has("Connect");
+          everyoneOverwrite?.deny.has("Connect");
 
         await channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone,
+          interaction.guild.roles.everyone.id,
           {
             ViewChannel: true,
             Connect: !isLocked
@@ -446,9 +461,8 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        return interaction.reply({
-          content: "👁 แสดงห้องแล้ว",
-          ephemeral: true
+        return interaction.editReply({
+          content: "👁 แสดงห้องแล้ว"
         });
       }
     }
