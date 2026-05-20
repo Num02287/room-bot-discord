@@ -228,15 +228,15 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔒 ล็อกห้องแล้ว" });
       }
 
-      // 🙈 ซ่อนห้อง (แก้ไขให้เห็นแค่เจ้าของ 100%)
+// 🙈 ซ่อนห้อง (ให้เห็นแค่เจ้าของห้องคนเดียว 100%)
       if (interaction.customId === "hide") {
-        // 1. ซ่อนและบล็อกทุกคน (@everyone)
+        // 1. ปิดการมองเห็นและปิดการเชื่อมต่อของทุกคน (@everyone)
         await channel.permissionOverwrites.edit(interaction.guild.id, { 
           ViewChannel: false,
           Connect: false 
         });
 
-        // 2. ซ่อนและบล็อคยศพิเศษ (allowRoleId) เพื่อไม่ให้สิทธิ์ขี่กัน
+        // 2. ปิดการมองเห็นของยศพิเศษประจำโซน (allowRoleId) เพื่อป้องกันสิทธิ์ทับซ้อน
         if (allowRoleId) {
           await channel.permissionOverwrites.edit(allowRoleId, { 
             ViewChannel: false,
@@ -244,18 +244,18 @@ client.on("interactionCreate", async (interaction) => {
           }).catch(() => {});
         }
 
-        // 3. เจาะจงให้เจ้าของห้องมองเห็นและเข้าได้คนเดียว
+        // 3. เปิดสิทธิ์ให้ "เจ้าของห้อง" คนเดียวที่ยังเห็นและเข้าห้องตัวเองได้ปกติ
         await channel.permissionOverwrites.edit(data.owner, { 
           ViewChannel: true, 
           Connect: true 
         });
 
-        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว (ตอนนี้เห็นแค่คุณคนเดียวเท่านั้น)" });
+        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
       }
 
-      // 👁 แสดงห้อง
+      // 👁 แสดงห้อง (เปิดให้ทุกคนกลับมาเห็น)
       if (interaction.customId === "show") {
-        // ให้ทุกคนกลับมามองเห็นห้อง แต่บังคับสถานะให้เป็น "ล็อก" ไว้ก่อนเพื่อความปลอดภัย
+        // เปิดให้ @everyone กลับมามองเห็นห้อง แต่บังคับล็อก (Connect: false) เอาไว้ก่อน
         await channel.permissionOverwrites.edit(interaction.guild.id, { 
           ViewChannel: true, 
           Connect: false 
@@ -268,9 +268,8 @@ client.on("interactionCreate", async (interaction) => {
           }).catch(() => {});
         }
 
-        return interaction.editReply({ content: "👁 แสดงห้องแล้ว (ผู้ใช้อื่นจะเห็นชื่อห้อง แต่ยังเข้าไม่ได้จนกว่าจะกดปลดล็อก)" });
+        return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
       }
-    }
 
     // ===== SELECT =====
     if (interaction.isUserSelectMenu()) {
