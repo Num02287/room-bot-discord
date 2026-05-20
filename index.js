@@ -388,9 +388,10 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // ===== HIDE =====
+           // ===== HIDE =====
       if (interaction.customId === "hide") {
 
+        // ซ่อน everyone
         await channel.permissionOverwrites.edit(
           interaction.guild.roles.everyone,
           {
@@ -398,6 +399,7 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
+        // ซ่อน role เพิ่มเติม
         if (allowRoleId) {
 
           await channel.permissionOverwrites.edit(
@@ -408,11 +410,13 @@ client.on("interactionCreate", async (interaction) => {
           ).catch(() => {});
         }
 
+        // เจ้าของยังเห็นและเข้าได้
         await channel.permissionOverwrites.edit(
-          member.id,
+          data.owner,
           {
             ViewChannel: true,
-            Connect: true
+            Connect: true,
+            Speak: true
           }
         );
 
@@ -424,22 +428,45 @@ client.on("interactionCreate", async (interaction) => {
       // ===== SHOW =====
       if (interaction.customId === "show") {
 
+        // เช็คว่าห้องล็อกอยู่ไหม
+        const everyoneOverwrite =
+          channel.permissionOverwrites.cache.get(
+            interaction.guild.roles.everyone.id
+          );
+
+        const isLocked =
+          everyoneOverwrite?.deny.has("Connect");
+
+        // แสดง everyone
         await channel.permissionOverwrites.edit(
           interaction.guild.roles.everyone,
           {
-            ViewChannel: true
+            ViewChannel: true,
+            Connect: !isLocked
           }
         );
 
+        // แสดง role เพิ่มเติม
         if (allowRoleId) {
 
           await channel.permissionOverwrites.edit(
             allowRoleId,
             {
-              ViewChannel: true
+              ViewChannel: true,
+              Connect: !isLocked
             }
           ).catch(() => {});
         }
+
+        // เจ้าของเข้าได้เสมอ
+        await channel.permissionOverwrites.edit(
+          data.owner,
+          {
+            ViewChannel: true,
+            Connect: true,
+            Speak: true
+          }
+        );
 
         return interaction.editReply({
           content: "👁 แสดงห้องแล้ว"
