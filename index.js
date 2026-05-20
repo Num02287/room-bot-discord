@@ -38,11 +38,11 @@ const client = new Client({
 
 const tempChannels = new Map();
 
-// ===== Slash Commands (เปิดให้ทุกคนพิมพ์ได้) =====
+// ===== Slash Commands (แผงควบคุมสร้างห้องส่วนตัว) =====
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
-    .setDescription("เรียกแผงควบคุมห้องส่วนตัว (เปิดให้ทุกคนพิมพ์ได้)")
+    .setDescription("เรียกแผงควบคุมสร้างห้องส่วนตัว")
     .setDMPermission(false) 
 ].map(c => c.toJSON());
 
@@ -90,7 +90,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       }
 
       const channel = await newState.guild.channels.create({
-        name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
+        name: `ห้องส่วนตัวของ ${newState.member.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
         permissionOverwrites: permissionOverwrites 
@@ -140,7 +140,7 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       const embed = new EmbedBuilder()
         .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-        .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** สมาชิกที่มียศพิเศษจะสามารถเข้าห้องนี้ได้ทันที")
+        .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ :** สมาชิกที่มียศพิเศษจะสามารถเข้าห้องนี้ได้ทันที")
         .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
         .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
         .setColor(0x2b2d31);
