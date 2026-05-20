@@ -282,11 +282,13 @@ client.on("interactionCreate", async (interaction) => {
       }
 
 if (interaction.customId === "hide") {
+  // ซ่อนจาก @everyone
   await channel.permissionOverwrites.edit(interaction.guild.id, {
     ViewChannel: false,
     Connect: false,
   }).catch(() => {});
 
+  // ซ่อนจาก role อื่น (ถ้ามีสิทธิ์เดิมหลุดมา)
   if (allowRoleId) {
     await channel.permissionOverwrites.edit(allowRoleId, {
       ViewChannel: false,
@@ -294,16 +296,17 @@ if (interaction.customId === "hide") {
     }).catch(() => {});
   }
 
-  // เจ้าของยังเห็นอยู่
+  // 👑 เจ้าของต้องเห็นเสมอ
   await channel.permissionOverwrites.edit(data.owner, {
     ViewChannel: true,
     Connect: true,
   }).catch(() => {});
 
   return interaction.editReply({
-    content: "🙈 ซ่อนห้องแล้ว (คนอื่นจะมองไม่เห็น)",
+    content: "🙈 ซ่อนห้องแล้ว ",
   });
 }
+      
       if (interaction.customId === "show") {
         await channel.permissionOverwrites.edit(interaction.guild.id, {
           ViewChannel: true,
