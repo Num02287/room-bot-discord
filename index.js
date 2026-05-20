@@ -325,16 +325,17 @@ if (interaction.customId === "hide") {
           ephemeral: true,
         });
       }
-      if (interaction.customId === "select_deny") {
-        await channel.permissionOverwrites.edit(targetId, {
-          Connect: false,
-          ViewChannel: false,
-        });
-        return interaction.reply({
-          content: `🚫 ห้าม <@${targetId}>`,
-          ephemeral: true,
-        });
-      }
+ if (interaction.customId === "select_deny") {
+  await channel.permissionOverwrites.edit(targetId, {
+    Connect: false,
+    ViewChannel: false,
+  });
+
+  return interaction.reply({
+    content: `🚫 ห้าม <@${targetId}> `,
+    ephemeral: true,
+  });
+}
       if (interaction.customId === "select_transfer") {
         data.owner = targetId;
         const user = channel.members.get(targetId);
