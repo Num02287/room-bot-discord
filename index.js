@@ -180,11 +180,39 @@ const embed = new EmbedBuilder()
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว" });
       }
       
-      if (interaction.customId === "hide") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(()=>{});
-        await channel.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true });
-        return interaction.editReply({ content: "🙈 ซ่อนห้องแล้ว" });
+if (interaction.customId === "hide") {
+        // 1. ล้างสิทธิ์เก่าของยศทุกคน (@everyone) เพื่อไม่ให้สิทธิ์จาก Category มาค้ำไว้
+        await channel.permissionOverwrites.delete(interaction.guild.id).catch(() => {});
+        if (allowRoleId) {
+          await channel.permissionOverwrites.delete(allowRoleId).catch(() => {});
+        }
+
+        // 2. สั่งปิดการมองเห็นของทุกคน สมาชิกธรรมดาจะมองไม่เห็นห้องนี้ทันที
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false }).catch(() => {});
+        
+        if (allowRoleId) {
+          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
+        }
+        
+        // 3. เปิดให้เจ้าของห้องยังมองเห็นและเข้าใช้งานได้ปกติ
+        await channel.permissionOverwrites.edit(data.owner, { ViewChannel: true, Connect: true }).catch(() => {});
+        
+        // 4. คนที่นั่งอยู่ในห้อง ณ ตอนนั้น ให้ล็อกสิทธิ์ให้เขาเห็นห้องต่อได้ จะได้ไม่หลุด
+        channel.members.forEach(async (roomMember) => {
+          await channel.permissionOverwrites.edit(roomMember.id, { ViewChannel: true, Connect: true }).catch(() => {});
+        });
+
+        return interaction.editReply({ content: "🙈 ซ่อนห้องจากสมาชิกธรรมดาเรียบร้อยแล้วครับ" });
+      }
+
+      if (interaction.customId === "show") {
+        // ล้างค่าซ่อนห้อง และเปิดให้สิทธิ์กลับไปอิงตามหมวดหมู่/เซิร์ฟเวอร์ปกติ (ทุกคนกลับมาเห็น)
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true }).catch(() => {});
+        if (allowRoleId) {
+          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(() => {});
+        }
+        
+        return interaction.editReply({ content: "👁 แสดงห้องให้ทุกคนเห็นตามปกติแล้วครับ" });
       }
 
       if (interaction.customId === "show") {
