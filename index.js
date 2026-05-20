@@ -38,7 +38,7 @@ const client = new Client({
 
 const tempChannels = new Map();
 
-// ===== Slash Commands (แผงควบคุมสร้างห้องส่วนตัว) =====
+// ===== Slash Commands (ระบบสร้างห้อง) =====
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
