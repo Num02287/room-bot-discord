@@ -17,7 +17,7 @@ const {
 
 const express = require('express');
 
-// ===== Web Server สำหรับรันบน Render (เพื่อให้บอทไม่หลับ) =====
+// ===== Web Server สำหรับรันบน Render =====
 const app = express();
 app.get('/', (req, res) => res.send('Bot is Online!'));
 app.listen(process.env.PORT || 3000, () => console.log('Web Server is ready.'));
@@ -54,40 +54,33 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง (ซ่อนอัตโนมัติ) และโอนเจ้าของ =====
+// ===== ระบบสร้างห้อง (เปิดให้ทุกคนเห็นก่อน) และโอนเจ้าของ =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
-    // 1. สร้างห้องใหม่แบบล็อกการมองเห็นตั้งแต่เริ่มต้น
+    // 1. ตอนสร้างห้องใหม่ ตั้งค่าให้เห็นเป็นสาธารณะก่อน
     if (newState.channelId === createChannelId) {
-      const guildId = newState.guild.id;
-      const ownerId = newState.member.id;
-
       const channel = await newState.guild.channels.create({
         name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
-        // 🛠 ล็อกไม่ให้คนทั่วไปเห็นห้องตั้งแต่กดสร้าง
+        // เปิดให้เห็นเป็นสาธารณะตั้งแต่แรกสร้าง (ViewChannel: true)
         permissionOverwrites: [
           {
-            id: guildId, // ยศ @everyone (สมาชิกทุกคน)
-            deny: ["ViewChannel"], // 🚫 ปิดตา สมาชิกธรรมดาจะมองไม่เห็นห้องนี้
-          },
-          {
-            id: ownerId, // เจ้าของห้อง
-            allow: ["ViewChannel", "Connect"], // ✅ เปิดให้เห็นและเข้าใช้งานได้ปกติ
+            id: newState.guild.id, // ยศ @everyone
+            allow: ["ViewChannel", "Connect"] 
           },
           {
             id: client.user.id, // ตัวบอทเอง
-            allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"], // ✅ สิทธิ์ควบคุมห้องของบอท
+            allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"]
           }
         ]
       });
 
-      // ดึงตัวคนสร้างห้องเข้ามาในห้องใหม่ทันที
+      // ย้ายคนสร้างเข้าห้องใหม่
       await newState.setChannel(channel);
 
-      // บันทึกความสัมพันธ์ลงในระบบความจำชั่วคราว
-      tempChannels.set(channel.id, { owner: ownerId });
+      // บันทึกเจ้าของห้อง
+      tempChannels.set(channel.id, { owner: newState.member.id });
     }
 
     // 2. จัดการเมื่อคนออกจากห้อง
@@ -104,13 +97,13 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         return;
       }
 
-      // ระบบโอนเจ้าของอัตโนมัติเมื่อเจ้าของห้องตัวจริงกดออก
+      // ระบบโอนเจ้าของอัตโนมัติ
       if (oldState.member.id === data.owner) {
         const newOwner = channel.members.first();
         if (newOwner) {
           data.owner = newOwner.id;
           
-          // เปิดสิทธิ์การมองเห็นและสิทธิ์เข้าห้องให้เจ้าของคนใหม่ เพื่อป้องกันอาการตาบอด
+          // ตรวจสอบให้แน่ใจว่าเจ้าของใหม่มีสิทธิ์ควบคุมห้องแน่นอน
           await channel.permissionOverwrites.edit(newOwner.id, { ViewChannel: true, Connect: true }).catch(() => {});
           await channel.setName(`📍・ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
         }
@@ -124,12 +117,12 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 // ===== ระบบจัดการปุ่มกด, เมนูเลือกสมาชิก และ โมดอล =====
 client.on("interactionCreate", async (interaction) => {
   try {
-    // 1. เรียกเปิดแผงควบคุมระบบด้วยคำสั่ง Slash Command (/room)
+    // 1. แผงควบคุมระบบด้วยคำสั่ง Slash Command (/room)
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "room") {
         const embed = new EmbedBuilder()
           .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องที่สร้างใหม่จะถูกซ่อนจากบุคคลภายนอกโดยอัตโนมัติ")
+          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องสร้างใหม่ทุกคนจะเห็นปกติ กดปุ่ม 🙈 เพื่อซ่อนห้อง")
           .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
           .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
           .setColor(0x2b2d31);
@@ -178,7 +171,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // ตรวจสอบความถูกต้อง (ต้องเป็นเจ้าของห้องเท่านั้นถึงจะใช้ปุ่มอื่นได้)
+      // ต้องเป็นเจ้าของห้องเท่านั้นถึงจะใช้ปุ่มอื่นได้
       if (!data || data.owner !== member.id) return interaction.reply({ content: "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ", ephemeral: true });
 
       if (interaction.customId === "name") {
@@ -215,18 +208,41 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว คนอื่นสามารถจอยเข้าห้องได้ปกติ" });
       }
       
+      // 🛠 ปุ่มซ่อนห้อง: กวาดล้างและปิดการมองเห็นทุกยศเพื่อไม่ให้สมาชิกธรรมดาเห็น
       if (interaction.customId === "hide") {
-        // ห้องซ่อนอยู่แล้วตั้งแต่สร้าง แต่เขียนเผื่อไว้กรณีผู้ใช้เคยกดเปิดตา (Show) แล้วต้องการซ่อนใหม่
+        // ดึงโรลทั้งหมดในเซิร์ฟเวอร์มาไล่ปิดตา (ยกเว้นยศบอท และ ยศแอดมิน)
+        const roles = await interaction.guild.roles.fetch().catch(() => []);
+        for (const [roleId, role] of roles) {
+          if (!role.managed && !role.permissions.has("Administrator") && roleId !== interaction.guild.id) {
+            await channel.permissionOverwrites.edit(roleId, { ViewChannel: false }).catch(() => {});
+          }
+        }
+
+        // ปิดตา @everyone ด้วย
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false }).catch(() => {});
         if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว สมาชิกทั่วไปข้างนอกจะไม่เห็นห้องนี้" });
+        
+        // ยืนยันให้เจ้าของห้อง และคนที่อยู่ในห้องตอนนั้นยังคงมองเห็นห้องอยู่
+        await channel.permissionOverwrites.edit(data.owner, { ViewChannel: true, Connect: true }).catch(() => {});
+        channel.members.forEach(async (roomMember) => {
+          await channel.permissionOverwrites.edit(roomMember.id, { ViewChannel: true, Connect: true }).catch(() => {});
+        });
+
+        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว สมาชิกธรรมดาทั้งหมดข้างนอกจะไม่เห็นห้องนี้แล้วครับ" });
       }
 
+      // 🛠 ปุ่มแสดงห้อง: ล้างค่าซ่อนห้องเพื่อให้กลับไปเห็นกันทุกคนตามปกติ
       if (interaction.customId === "show") {
-        // เปิดให้สมาชิกทั่วไป (@everyone) และยศพิเศษ มองเห็นห้องนี้บนรายชื่อช่องได้ปกติ
+        const currentOverwrites = channel.permissionOverwrites.cache;
+        for (const [id, overwrite] of currentOverwrites) {
+          if (id !== data.owner && id !== client.user.id && !channel.members.has(id)) {
+            await channel.permissionOverwrites.delete(id).catch(() => {});
+          }
+        }
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true }).catch(() => {});
         if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(() => {});
-        return interaction.editReply({ content: "👁 แสดงห้องเรียบร้อยแล้ว สมาชิกทุกคนสามารถมองเห็นห้องนี้ได้แล้ว" });
+        
+        return interaction.editReply({ content: "👁 แสดงห้องเรียบร้อยแล้ว ตอนนี้สมาชิกทุกคนสามารถมองเห็นห้องนี้ได้ตามปกติ" });
       }
     }
 
@@ -241,12 +257,10 @@ client.on("interactionCreate", async (interaction) => {
       const targetId = interaction.values[0];
 
       if (interaction.customId === "select_allow") {
-        // ดึงเพื่อนเข้าห้อง: สั่งเปิดตาเปิดทางเฉพาะกิจให้เพื่อนคนนี้เห็นห้องและเชื่อมต่อได้คนเดียว
         await channel.permissionOverwrites.edit(targetId, { Connect: true, ViewChannel: true }).catch(() => {});
         return interaction.reply({ content: `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้วครับ`, ephemeral: true });
       }
       if (interaction.customId === "select_deny") {
-        // บล็อกและเตะ: สั่งตัดสิทธิ์การเข้าใช้งาน และถ้าเขาแอบนั่งเนียนอยู่ในห้อง ก็จะสั่งขาดการเชื่อมต่อ (Disconnect) ทันที
         await channel.permissionOverwrites.edit(targetId, { Connect: false }).catch(() => {});
         const targetMember = channel.members.get(targetId);
         if (targetMember) await targetMember.voice.disconnect().catch(() => {});
@@ -258,7 +272,6 @@ client.on("interactionCreate", async (interaction) => {
         if (targetUser) {
           await channel.setName(`📍・ห้องส่วนตัวของ ${targetUser.username}`).catch(() => {});
         }
-        // เปิดสิทธิ์คุ้มครองให้เจ้าของคนใหม่มองเห็นห้องแบบถาวรด้วย
         await channel.permissionOverwrites.edit(targetId, { Connect: true, ViewChannel: true }).catch(() => {});
         return interaction.reply({ content: `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้วครับ`, ephemeral: true });
       }
