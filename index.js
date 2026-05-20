@@ -54,20 +54,21 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง และดึงคนจากห้องสร้างหลักย้ายเข้าห้องใหม่ =====
+// ===== ระบบสร้างห้อง และบังคับย้ายคนสร้างเข้าห้องใหม่ทันที =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     // 1. ตรวจสอบเมื่อมีการกดเข้าห้องสร้างหลัก (Create Channel)
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
+      const creatorMember = newState.member; // ตัวคนกดสร้างห้อง
       
       // ดึงข้อมูลห้องสร้างหลัก ณ ปัจจุบัน เพื่อเช็คคนที่ติดค้างอยู่ข้างใน
       const createChannel = newState.guild.channels.cache.get(createChannelId);
 
       // สร้างช่องเสียงส่วนตัวห้องใหม่
       const newCustomChannel = await newState.guild.channels.create({
-        name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
+        name: `📍・ห้องส่วนตัวของ ${creatorMember.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
         permissionOverwrites: [
@@ -87,7 +88,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         ]
       });
 
-      // 🛠 ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
+      // ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
       const roles = await newState.guild.roles.fetch().catch(() => []);
       for (const [roleId, role] of roles) {
         if (!role.managed && roleId !== guildId) {
@@ -98,19 +99,19 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // บันทึกข้อมูลเจ้าของห้องชั่วคราวเก็บไว้ในระบบ Map
       tempChannels.set(newCustomChannel.id, { owner: ownerId });
 
-      // 🛠 ย้ายทุกคนที่นั่งรอ/หรือติดค้างอยู่ในห้องสร้างหลัก สลับย้ายเข้ามาที่ "ห้องใหม่ที่เพิ่งสร้างขึ้น" ทันที
+      // 🔥 [จุดแก้ไขสำคัญ] สั่งย้ายตัวคนสร้างห้อง (ตัวคุณ) ลงไปในห้องใหม่ทันทีแบบบังคับ 100% ก่อน
+      await creatorMember.voice.setChannel(newCustomChannel).catch((err) => {
+        console.error("ไม่สามารถย้ายตัวคนสร้างห้องได้:", err);
+      });
+
+      // ย้ายคนมียศคนอื่นๆ ที่นั่งรอ/หรือติดค้างอยู่ในห้องสร้างหลัก ตามลงมาด้วย (ถ้ามี)
       if (createChannel && createChannel.members) {
         for (const [memberId, member] of createChannel.members) {
-          // คัดกรอง: ถ้าย้ายตัวเจ้าของห้องเอง หรือคนนั้นมีบทบาทติดตัว (มียศมากกว่า 1 ยศ)
-          if (memberId === ownerId || member.roles.cache.size > 1) {
-            await member.voice.setChannel(newCustomChannel).catch((err) => {
-              console.error(`ไม่สามารถย้ายสมาชิก ${member.user.username} ได้:`, err);
-            });
+          // ย้ายคนอื่นที่มียศติดตัว (ข้ามตัวคนสร้างไปเพราะย้ายไปก่อนแล้ว)
+          if (memberId !== ownerId && member.roles.cache.size > 1) {
+            await member.voice.setChannel(newCustomChannel).catch(() => {});
           }
         }
-      } else {
-        // กรณีดักฉุกเฉิน: ย้ายตัวเจ้าของห้องเข้าห้องใหม่โดยตรง
-        await newState.setChannel(newCustomChannel).catch(() => {});
       }
     }
 
