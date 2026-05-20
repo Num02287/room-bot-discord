@@ -75,7 +75,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         data.owner = newOwner.id;
         await channel.setName(`📍・ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
         
-        // อัปเดตสิทธิ์ให้เจ้าของคนใหม่ด้วย เผื่อกรณีห้องล็อกอยู่
         await channel.permissionOverwrites.edit(newOwner.id, {
           Connect: true,
           ViewChannel: true
@@ -148,7 +147,6 @@ client.on("interactionCreate", async (interaction) => {
 
       const data = tempChannels.get(channel.id);
 
-      // 👑 ดูเจ้าของ (ทุกคนกดได้)
       if (interaction.customId === "owner") {
         if (!data) {
           return interaction.reply({ content: "❌ ห้องนี้ไม่ได้อยู่ในระบบ", ephemeral: true });
@@ -167,7 +165,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // 🔒 เช็คเจ้าของห้อง
       if (!data || data.owner !== member.id) {
         return interaction.reply({ content: "❌ ไม่ใช่เจ้าของ", ephemeral: true });
       }
@@ -228,48 +225,58 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔒 ล็อกห้องแล้ว" });
       }
 
-// 🙈 ซ่อนห้อง (ให้เห็นแค่เจ้าของห้องคนเดียว 100%)
+      // 🙈 ซ่อนห้อง (แบบล้างสิทธิ์ยศอื่นทิ้งถาวร เห็นแค่เจ้าของ 100%)
       if (interaction.customId === "hide") {
-        // 1. ปิดการมองเห็นและปิดการเชื่อมต่อของทุกคน (@everyone)
-        await channel.permissionOverwrites.edit(interaction.guild.id, { 
-          ViewChannel: false,
-          Connect: false 
-        });
+        const hideOverwrites = [
+          {
+            id: interaction.guild.id, // @everyone
+            deny: ["ViewChannel", "Connect"]
+          },
+          {
+            id: data.owner, // เจ้าของห้อง
+            allow: ["ViewChannel", "Connect"]
+          }
+        ];
 
-        // 2. ปิดการมองเห็นของยศพิเศษประจำโซน (allowRoleId) เพื่อป้องกันสิทธิ์ทับซ้อน
+        // แทรกยศพิเศษลงในสิทธิ์สั่งซ่อนด้วยเพื่อไม่ให้สิทธิ์ค้าง
         if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { 
-            ViewChannel: false,
-            Connect: false
-          }).catch(() => {});
+          hideOverwrites.push({
+            id: allowRoleId,
+            deny: ["ViewChannel", "Connect"]
+          });
         }
 
-        // 3. เปิดสิทธิ์ให้ "เจ้าของห้อง" คนเดียวที่ยังเห็นและเข้าห้องตัวเองได้ปกติ
-        await channel.permissionOverwrites.edit(data.owner, { 
-          ViewChannel: true, 
-          Connect: true 
-        });
-
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
+        // ล้างกะเกณฑ์เก่าทิ้ง เขียนทับสิทธิ์ใหม่ทันที
+        await channel.permissionOverwrites.set(hideOverwrites);
+        return interaction.editReply({ content: "🙈 ซ่อนห้องสำเร็จแล้ว! ตอนนี้มีแค่คุณคนเดียวเท่านั้นที่เห็นห้องนี้" });
       }
 
-      // 👁 แสดงห้อง (เปิดให้ทุกคนกลับมาเห็น)
+      // 👁 แสดงห้อง
       if (interaction.customId === "show") {
-        // เปิดให้ @everyone กลับมามองเห็นห้อง แต่บังคับล็อก (Connect: false) เอาไว้ก่อน
-        await channel.permissionOverwrites.edit(interaction.guild.id, { 
-          ViewChannel: true, 
-          Connect: false 
-        });
+        const showOverwrites = [
+          {
+            id: interaction.guild.id, // @everyone ให้กลับมาเห็น แต่ล็อกห้องไว้
+            allow: ["ViewChannel"],
+            deny: ["Connect"]
+          },
+          {
+            id: data.owner, // เจ้าของเข้าได้ปกติ
+            allow: ["ViewChannel", "Connect"]
+          }
+        ];
 
         if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { 
-            ViewChannel: true, 
-            Connect: false 
-          }).catch(() => {});
+          showOverwrites.push({
+            id: allowRoleId,
+            allow: ["ViewChannel"],
+            deny: ["Connect"]
+          });
         }
 
-        return interaction.editReply({ content: "👁 แสดงห้องแล้ว" });
+        await channel.permissionOverwrites.set(showOverwrites);
+        return interaction.editReply({ content: "👁 แสดงห้องสำเร็จแล้ว! ทุกคนจะกลับมาเห็นชื่อห้อง แต่ยังเข้าไม่ได้เนื่องจากห้องล็อกอยู่" });
       }
+    }
 
     // ===== SELECT =====
     if (interaction.isUserSelectMenu()) {
@@ -301,7 +308,6 @@ client.on("interactionCreate", async (interaction) => {
           ViewChannel: false
         });
 
-        // เตะออกจากห้องทันทีหากคนที่โดนแบนแอบนั่งอยู่ในห้องเสียงขณะนั้น
         const targetMember = channel.members.get(targetId);
         if (targetMember) {
           await targetMember.voice.disconnect().catch(() => {});
@@ -314,7 +320,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "select_transfer") {
-        // แก้ไขดึงข้อมูลข้ามห้องเสียง ป้องกันปัญหาบอทดับ
         const targetUser = interaction.guild.members.cache.get(targetId)?.user;
         if (!targetUser) {
           return interaction.reply({ content: "❌ ไม่พบผู้ใช้นี้ในเซิร์ฟเวอร์", ephemeral: true });
@@ -323,7 +328,6 @@ client.on("interactionCreate", async (interaction) => {
         data.owner = targetId;
         await channel.setName(`📍・ห้องส่วนตัวของ ${targetUser.username}`).catch(() => {});
         
-        // มอบสิทธิ์สูงสุดของห้องให้เจ้าของใหม่ทันที
         await channel.permissionOverwrites.edit(targetId, {
           Connect: true,
           ViewChannel: true
