@@ -43,7 +43,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName("room")
     .setDescription("เรียกแผงควบคุมห้องส่วนตัว (เปิดให้ทุกคนพิมพ์ได้)")
-    .setDMPermission(false) // ❌ ปิดไม่ให้พิมพ์คำสั่งนี้ในแชทส่วนตัวกับบอท (ให้ใช้แค่ในเซิร์ฟเวอร์)
+    .setDMPermission(false) 
 ].map(c => c.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(token);
@@ -58,9 +58,10 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้องอัตโนมัติ =====
+// ===== ระบบสร้างห้องและลบห้องอัตโนมัติ =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
+    // --- 1. ขาเข้า: สมาชิกกดเข้าช่องสร้างห้องค้างไว้ ---
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
@@ -100,20 +101,25 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       return;
     }
 
-    // จัดการเมื่อคนออกจากห้อง
+    // --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
     if (oldState.channelId && tempChannels.has(oldState.channelId)) {
-      const channel = oldState.channel; 
-      if (!channel) return;
-
-      const data = tempChannels.get(oldState.channelId);
-
-      if (channel.members.size === 0) {
+      // ดึงข้อมูลห้องแบบอัปเดตล่าสุดจากเซิร์ฟเวอร์ดิสคอร์ดโดยตรงเพื่อความแม่นยำ
+      const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
+      if (!channel) {
         tempChannels.delete(oldState.channelId);
-        await channel.delete().catch(() => {});
         return;
       }
 
-      // ระบบโอนเจ้าของอัตโนมัติ
+      const data = tempChannels.get(oldState.channelId);
+
+      // 🔥 [ระบบลบห้องเด็ดขาด] ถ้าไม่มีใครเหลืออยู่ในห้องแล้ว (Members = 0) ให้ลบทันที
+      if (channel.members.size === 0) {
+        tempChannels.delete(oldState.channelId);
+        await channel.delete().catch((err) => console.error("❌ ไม่สามารถลบห้องได้เนื่องจากบอทขาดสิทธิ์ Manage Channels:", err));
+        return;
+      }
+
+      // ระบบโอนเจ้าของอัตโนมัติ (กรณีห้องยังไม่ว่าง แต่เจ้าของห้องกดออกคนแรก)
       if (oldState.member.id === data.owner) {
         const newOwner = channel.members.first();
         if (newOwner) {
@@ -167,7 +173,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const data = tempChannels.get(channel.id);
 
-      // ปุ่มตรวจสอบเจ้าของห้อง (เปิดสิทธิ์ให้ทุกคนกดดูได้)
+      // ปุ่มตรวจสอบเจ้าของห้อง
       if (interaction.customId === "owner") {
         if (!data) return interaction.reply({ content: "❌ ห้องนี้ไม่ได้อยู่ในระบบห้องชั่วคราว", ephemeral: true });
         const ownerMember = interaction.guild.members.cache.get(data.owner);
@@ -183,7 +189,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // 🛡️ ตรวจสอบสิทธิ์ความเป็นเจ้าของห้องสำหรับปุ่มควบคุมอื่น ๆ ทันที
+      // 🛡️ ตรวจสอบสิทธิ์ความเป็นเจ้าของห้องสำหรับปุ่มควบคุมอื่น ๆ
       if (!data || data.owner !== member.id) {
         return interaction.reply({ content: "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ ไม่สามารถสั่งการได้", ephemeral: true });
       }
@@ -209,7 +215,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({ content: "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่างนี้ครับ", components: [new ActionRowBuilder().addComponents(menu)], ephemeral: true });
       }
 
-      // กลุ่มคำสั่งที่ต้อง Defer Reply (แก้ไข Permissions ของห้อง)
+      // กลุ่มคำสั่งแก้ไข Permissions ของห้อง
       await interaction.deferReply({ ephemeral: true });
 
       if (interaction.customId === "lock") {
@@ -231,26 +237,17 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "show") {
-        // 🔄 เช็กค่าสิทธิ์ปัจจุบันของยศ @everyone เพื่อวิเคราะห์สถานะล็อก/เปิดห้องแบบเรียลไทม์
         const everyonePerms = channel.permissionOverwrites.cache.get(interaction.guild.id);
         const isCurrentlyLocked = everyonePerms ? everyonePerms.deny.has("Connect") : false;
 
         if (isCurrentlyLocked) {
-          // 🏮 เคสห้อง "ล็อก" อยู่ -> แสดงให้เห็นว่าล็อกอยู่ (เห็นแต่เข้าไม่ได้)
           await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: false }).catch(() => {});
-          
-          return interaction.editReply({ 
-            content: "👁️ **[สถานะห้อง: ล็อก]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนจะเห็นห้องของคุณ แต่จะไม่สามารถกดจอยเข้ามาได้" 
-          });
+          return interaction.editReply({ content: "👁️ **[สถานะห้อง: ล็อก]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนจะเห็นห้องของคุณ แต่จะไม่สามารถกดจอยเข้ามาได้" });
         } else {
-          // 🟢 เคสห้อง "เปิด" อยู่ -> แสดงและจอยได้ทันที
           await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true }).catch(() => {});
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
-          
-          return interaction.editReply({ 
-            content: "👁️ **[สถานะห้อง: เปิด]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้สมาชิกทุกคนสามารถมองเห็นและกดจอยเข้าร่วมได้ทันที" 
-          });
+          return interaction.editReply({ content: "👁️ **[สถานะห้อง: เปิด]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้สมาชิกทุกคนสามารถมองเห็นและกดจอยเข้าร่วมได้ทันที" });
         }
       }
     }
