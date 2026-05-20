@@ -103,7 +103,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
     // --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
     if (oldState.channelId && tempChannels.has(oldState.channelId)) {
-      // ดึงข้อมูลห้องแบบอัปเดตล่าสุดจากเซิร์ฟเวอร์ดิสคอร์ดโดยตรงเพื่อความแม่นยำ
       const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
       if (!channel) {
         tempChannels.delete(oldState.channelId);
@@ -112,14 +111,14 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
       const data = tempChannels.get(oldState.channelId);
 
-      // 🔥 [ระบบลบห้องเด็ดขาด] ถ้าไม่มีใครเหลืออยู่ในห้องแล้ว (Members = 0) ให้ลบทันที
+      // ถ้าไม่มีใครเหลืออยู่ในห้องแล้ว (Members = 0) ให้ลบทันที
       if (channel.members.size === 0) {
         tempChannels.delete(oldState.channelId);
         await channel.delete().catch((err) => console.error("❌ ไม่สามารถลบห้องได้เนื่องจากบอทขาดสิทธิ์ Manage Channels:", err));
         return;
       }
 
-      // ระบบโอนเจ้าของอัตโนมัติ (กรณีห้องยังไม่ว่าง แต่เจ้าของห้องกดออกคนแรก)
+      // ระบบโอนเจ้าของอัตโนมัติ
       if (oldState.member.id === data.owner) {
         const newOwner = channel.members.first();
         if (newOwner) {
@@ -219,15 +218,23 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply({ ephemeral: true });
 
       if (interaction.customId === "lock") {
+        // ล็อกไม่ให้ทุกคนเข้า รวมถึงคนมียศด้วย
         await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false }).catch(() => {});
         if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(() => {});
         return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว คนอื่นรวมถึงยศพิเศษจะไม่สามารถกดจอยเข้ามาได้" });
       }
 
       if (interaction.customId === "unlock") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true, ViewChannel: true }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true, ViewChannel: true }).catch(() => {});
-        return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว ตอนนี้สมาชิกทุกคนสามารถมองเห็นและกดเข้าร่วมห้องได้ปกติครับ" });
+        // ✨ ปรับตรรกะใหม่: คนทั่วไป (@everyone) มองเห็นได้ แต่กดเข้าไม่ได้
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
+        
+        // ✨ คนมียศพิเศษ (ALLOW_ROLE_ID) มองเห็นได้ และกดจอยเข้ามาได้
+        if (allowRoleId) {
+          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
+          return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว! ตอนนี้สมาชิกทั่วไปจะมองเห็นห้องได้ (แต่เข้าไม่ได้) และเปิดให้ผู้ที่มียศพิเศษกดเข้าร่วมห้องได้ตามปกติครับ" });
+        }
+        
+        return interaction.editReply({ content: "🔓 ปลดล็อกห้องแล้ว! สมาชิกทั่วไปมองเห็นห้องได้ปกติ (แต่กดเข้าไม่ได้)" });
       }
       
       if (interaction.customId === "hide") {
@@ -245,9 +252,10 @@ client.on("interactionCreate", async (interaction) => {
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: false }).catch(() => {});
           return interaction.editReply({ content: "👁️ **[สถานะห้อง: ล็อก]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนจะเห็นห้องของคุณ แต่จะไม่สามารถกดจอยเข้ามาได้" });
         } else {
-          await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true }).catch(() => {});
+          // สัมพันธ์ตามตรรกะปลดล็อกด้านบน
+          await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
-          return interaction.editReply({ content: "👁️ **[สถานะห้อง: เปิด]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้สมาชิกทุกคนสามารถมองเห็นและกดจอยเข้าร่วมได้ทันที" });
+          return interaction.editReply({ content: "👁️ **[สถานะห้อง: เปิดเฉพาะยศ]** แสดงห้องเรียบร้อยแล้ว! สมาชิกทั่วไปมองเห็นได้แต่เข้าไม่ได้ เฉพาะคนมียศพิเศษเท่านั้นที่จะจอยได้" });
         }
       }
     }
