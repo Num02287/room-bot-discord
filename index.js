@@ -388,22 +388,14 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-           // ===== HIDE =====
+      // ===== HIDE =====
       if (interaction.customId === "hide") {
 
-        // ซ่อน everyone
-        await channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone,
-          {
-            ViewChannel: false
-          }
-        );
-
-        // ซ่อน role เพิ่มเติม
-        if (allowRoleId) {
+        // ซ่อนทุก role
+        for (const role of interaction.guild.roles.cache.values()) {
 
           await channel.permissionOverwrites.edit(
-            allowRoleId,
+            role.id,
             {
               ViewChannel: false
             }
