@@ -124,7 +124,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         if (newOwner) {
           data.owner = newOwner.id;
           await channel.permissionOverwrites.edit(newOwner.id, { ViewChannel: true, Connect: true }).catch(() => {});
-          await channel.setName(`📍・ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
+          await channel.setName(`ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
         }
       }
     }
