@@ -16,6 +16,20 @@ const {
 } = require("discord.js");
 
 const { token, createChannelId, categoryId, allowRoleId } = require("./config.json");
+const express = require("express"); // 🔥 เพิ่ม Express สำหรับรันบน Render
+
+// ===== 🌐 เปิดระบบ Web Server สำหรับ Render =====
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send(`🤖 บอทออนไลน์และระบบทำงานปกติบนพอร์ต ${PORT}`);
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web Server เปิดใช้งานแล้วบนพอร์ต ${PORT} (สำหรับ Render)`);
+});
+// ============================================
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
@@ -31,7 +45,7 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(token);
 
 client.once("ready", async () => {
-  console.log(`✅ ${client.user.tag}`);
+  console.log(`✅ บอทใน Discord ออนไลน์แล้ว: ${client.user.tag}`);
   try {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
   } catch (error) {
@@ -225,20 +239,19 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "🔒 ล็อกห้องแล้ว" });
       }
 
-      // 🙈 ซ่อนห้อง (แบบล้างสิทธิ์ยศอื่นทิ้งถาวร เห็นแค่เจ้าของ 100%)
+      // 🙈 ซ่อนห้องเด็ดขาด (ล้างสิทธิ์ยศอื่นทับซ้อนทิ้งถาวร เห็นแค่เจ้าของ 100%)
       if (interaction.customId === "hide") {
         const hideOverwrites = [
           {
-            id: interaction.guild.id, // @everyone
+            id: interaction.guild.id, // @everyone บล็อกหมด
             deny: ["ViewChannel", "Connect"]
           },
           {
-            id: data.owner, // เจ้าของห้อง
+            id: data.owner, // เจ้าของเห็น+เข้าได้คนเดียว
             allow: ["ViewChannel", "Connect"]
           }
         ];
 
-        // แทรกยศพิเศษลงในสิทธิ์สั่งซ่อนด้วยเพื่อไม่ให้สิทธิ์ค้าง
         if (allowRoleId) {
           hideOverwrites.push({
             id: allowRoleId,
@@ -246,9 +259,8 @@ client.on("interactionCreate", async (interaction) => {
           });
         }
 
-        // ล้างกะเกณฑ์เก่าทิ้ง เขียนทับสิทธิ์ใหม่ทันที
         await channel.permissionOverwrites.set(hideOverwrites);
-        return interaction.editReply({ content: "🙈 ซ่อนห้องสำเร็จแล้ว! ตอนนี้มีแค่คุณคนเดียวเท่านั้นที่เห็นห้องนี้" });
+        return interaction.editReply({ content: "🙈 ซ่อนห้องสำเร็จแล้ว! ตอนนี้ไม่มีใครเห็นชื่อห้องนี้เลยยกเว้นคุณ" });
       }
 
       // 👁 แสดงห้อง
@@ -260,7 +272,7 @@ client.on("interactionCreate", async (interaction) => {
             deny: ["Connect"]
           },
           {
-            id: data.owner, // เจ้าของเข้าได้ปกติ
+            id: data.owner, 
             allow: ["ViewChannel", "Connect"]
           }
         ];
@@ -274,7 +286,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         await channel.permissionOverwrites.set(showOverwrites);
-        return interaction.editReply({ content: "👁 แสดงห้องสำเร็จแล้ว! ทุกคนจะกลับมาเห็นชื่อห้อง แต่ยังเข้าไม่ได้เนื่องจากห้องล็อกอยู่" });
+        return interaction.editReply({ content: "👁 แสดงห้องสำเร็จแล้ว! ทุกคนจะกลับมาเห็นชื่อห้องของคุณ (แต่ห้องยังล็อกอยู่)" });
       }
     }
 
