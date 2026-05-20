@@ -17,7 +17,7 @@ const {
 
 const express = require('express');
 
-// ===== Web Server สำหรับรันบน Render =====
+// ===== Web Server สำหรับรันบน Cloud (เช่น Render) =====
 const app = express();
 app.get('/', (req, res) => res.send('Bot is Online!'));
 app.listen(process.env.PORT || 3000, () => console.log('Web Server is ready.'));
@@ -38,9 +38,12 @@ const client = new Client({
 
 const tempChannels = new Map();
 
-// ===== Slash Commands =====
+// ===== Slash Commands (เปิดให้ทุกคนพิมพ์ได้) =====
 const commands = [
-  new SlashCommandBuilder().setName("room").setDescription("ระบบห้องส่วนตัว")
+  new SlashCommandBuilder()
+    .setName("room")
+    .setDescription("เรียกแผงควบคุมห้องส่วนตัว (เปิดให้ทุกคนพิมพ์ได้)")
+    .setDMPermission(false) // ❌ ปิดไม่ให้พิมพ์คำสั่งนี้ในแชทส่วนตัวกับบอท (ให้ใช้แค่ในเซิร์ฟเวอร์)
 ].map(c => c.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(token);
@@ -49,6 +52,7 @@ client.once("ready", async () => {
   console.log(`✅ Login as: ${client.user.tag}`);
   try {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+    console.log("🚀 รีเฟรชและติดตั้ง Slash Commands เรียบร้อยแล้ว!");
   } catch (err) {
     console.error(err);
   }
@@ -179,7 +183,7 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // 🛡️ [ความปลอดภัย] ตรวจสอบสิทธิ์ความเป็นเจ้าของห้องสำหรับปุ่มควบคุมอื่น ๆ ทันที
+      // 🛡️ ตรวจสอบสิทธิ์ความเป็นเจ้าของห้องสำหรับปุ่มควบคุมอื่น ๆ ทันที
       if (!data || data.owner !== member.id) {
         return interaction.reply({ content: "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ ไม่สามารถสั่งการได้", ephemeral: true });
       }
@@ -227,12 +231,12 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "show") {
-        // 🔄 เช็กค่าสิทธิ์ปัจจุบันของยศ @everyone ใน Discord Cache เพื่อดูเจตนาล็อก/เปิดห้อง
+        // 🔄 เช็กค่าสิทธิ์ปัจจุบันของยศ @everyone เพื่อวิเคราะห์สถานะล็อก/เปิดห้องแบบเรียลไทม์
         const everyonePerms = channel.permissionOverwrites.cache.get(interaction.guild.id);
         const isCurrentlyLocked = everyonePerms ? everyonePerms.deny.has("Connect") : false;
 
         if (isCurrentlyLocked) {
-          // 🏮 กรณีที่เจ้าของห้องเลือก "ล็อก" ห้องอยู่ -> แสดงห้องแบบล็อก (เห็นแต่เข้าไม่ได้)
+          // 🏮 เคสห้อง "ล็อก" อยู่ -> แสดงให้เห็นว่าล็อกอยู่ (เห็นแต่เข้าไม่ได้)
           await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: false }).catch(() => {});
           
@@ -240,7 +244,7 @@ client.on("interactionCreate", async (interaction) => {
             content: "👁️ **[สถานะห้อง: ล็อก]** แสดงห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนจะเห็นห้องของคุณ แต่จะไม่สามารถกดจอยเข้ามาได้" 
           });
         } else {
-          // 🟢 กรณีที่ห้อง "เปิด" อยู่ปกติ -> แสดงห้องและเปิดให้จอยได้เลย
+          // 🟢 เคสห้อง "เปิด" อยู่ -> แสดงและจอยได้ทันที
           await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true }).catch(() => {});
           if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
           
