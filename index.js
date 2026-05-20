@@ -26,7 +26,7 @@ app.listen(process.env.PORT || 3000, () => console.log('Web Server is ready.'));
 const token = process.env.TOKEN;
 const createChannelId = process.env.CREATE_CHANNEL_ID;
 const categoryId = process.env.CATEGORY_ID;
-const allowRoleId = process.env.ALLOW_ROLE_ID; // 👈 ไอดีของยศที่อนุญาตให้เข้าห้องได้
+const allowRoleId = process.env.ALLOW_ROLE_ID;
 
 const client = new Client({
   intents: [
@@ -54,36 +54,34 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง (เปิดตาให้ทุกคน, ปลดล็อกให้ยศพิเศษ, ล็อกคนทั่วไป) =====
+// ===== ระบบสร้างห้อง (ค่าเริ่มต้น: เปิดให้เห็นและเปิดให้เข้าได้อิสระ) =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
 
-      // เตรียมเซ็ตค่าสิทธิ์ (Permission Overwrites) พื้นฐาน
+      // 🛠 ค่าเริ่มต้นตอนสร้างห้อง: ทุกคนเห็นห้องได้ และยังไม่ล็อกห้อง (ทุกคนเข้าได้)
       const permissionOverwrites = [
         {
-          id: guildId, // ยศ @everyone (สมาชิกทุกคน)
-          allow: ["ViewChannel"], // ✅ เปิดให้เห็นห้อง
-          deny: ["Connect"],      // 🚫 ล็อกห้องไว้ ไม่ให้คนทั่วไปเข้า
+          id: guildId, // สมาชิกทุกคน (@everyone)
+          allow: ["ViewChannel", "Connect"], // ✅ มองเห็น และ ✅ กดเข้าห้องได้ปกติ
         },
         {
           id: ownerId, // เจ้าของห้อง
-          allow: ["ViewChannel", "Connect"], // ✅ เจ้าของห้องเห็นและเข้าได้ปกติ
+          allow: ["ViewChannel", "Connect"], 
         },
         {
           id: client.user.id, // ตัวบอทเอง
-          allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"], // ✅ สิทธิ์การคุมห้องของบอท
+          allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"], 
         }
       ];
 
-      // 🛠 ตรวจสอบว่ามีการใส่ ALLOW_ROLE_ID ใน Environment ไว้ไหม 
-      // ถ้ามี ให้เพิ่มสิทธิ์ "ให้ยศนี้มองเห็นและกดเข้าห้องได้ทันที" ตอนสร้างห้อง
+      // ถ้าเซ็ตยศพิเศษไว้ ก็ให้เห็นและเข้าได้ปกติเช่นกัน
       if (allowRoleId) {
         permissionOverwrites.push({
           id: allowRoleId,
-          allow: ["ViewChannel", "Connect"] // ✅ ยศพิเศษเห็นและกดเข้าได้เลยตั้งแต่เริ่มสร้างห้อง
+          allow: ["ViewChannel", "Connect"]
         });
       }
 
@@ -91,7 +89,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
-        permissionOverwrites: permissionOverwrites // ใส่สิทธิ์ที่เราตั้งค่าไว้ข้างบน
+        permissionOverwrites: permissionOverwrites
       });
 
       // ดึงตัวคนสร้างห้องเข้ามาในห้องใหม่ทันที
@@ -121,7 +119,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         const newOwner = channel.members.first();
         if (newOwner) {
           data.owner = newOwner.id;
-          
           await channel.permissionOverwrites.edit(newOwner.id, { ViewChannel: true, Connect: true }).catch(() => {});
           await channel.setName(`📍・ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
         }
@@ -140,22 +137,20 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.commandName === "room") {
         const embed = new EmbedBuilder()
           .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** สมาชิกที่มียศพิเศษจะสามารถเข้าห้องนี้ได้ทันที")
+          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัวของคุณ\n🔹 **ห้องจะแสดงให้เห็นตลอดเวลา** และขึ้นอยู่กับคุณว่าจะเลือก ล็อก หรือ ปลดล็อก ห้อง")
           .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
-          .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
+          .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการล็อก/ปลดล็อกห้องของคุณ" })
           .setColor(0x2b2d31);
 
         const row1 = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId("name").setEmoji("✏️").setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId("lock").setEmoji("🔒").setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId("unlock").setEmoji("🔓").setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId("lock").setEmoji("🔒").setLabel("ล็อกห้อง").setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId("unlock").setEmoji("🔓").setLabel("ปลดล็อก").setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId("limit").setEmoji("🎯").setStyle(ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId("owner").setEmoji("👑").setStyle(ButtonStyle.Secondary)
         );
 
         const row2 = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("hide").setEmoji("🙈").setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId("show").setEmoji("👁").setStyle(ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId("transfer").setEmoji("🔁").setStyle(ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId("allow").setEmoji("🧑‍🤝‍🧑").setStyle(ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId("deny").setEmoji("🚫").setStyle(ButtonStyle.Secondary)
@@ -213,38 +208,19 @@ client.on("interactionCreate", async (interaction) => {
 
       await interaction.deferReply({ ephemeral: true });
 
+      // 🔒 ปุ่มล็อกห้อง: คนอื่นเห็นห้องเหมือนเดิม แต่กดเข้าไม่ได้ (ขึ้นรูปกุญแจ)
       if (interaction.customId === "lock") {
-        // ล็อกไม่ให้ทุกคนและยศพิเศษเข้า
-        await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(() => {});
-        await channel.permissionOverwrites.edit(data.owner, { Connect: true, ViewChannel: true }).catch(() => {});
-        return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว คนอื่นรวมถึงยศพิเศษจะไม่สามารถกดจอยเข้ามาได้ (ยกเว้นจะกดอนุญาตรายคน)" });
-      }
-
-      if (interaction.customId === "unlock") {
-        // ล็อกคนทั่วไป แต่ปลดล็อกคืนให้เฉพาะยศพิเศษ
-        await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false, ViewChannel: true }).catch(() => {});
-        
-        if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { Connect: true, ViewChannel: true }).catch(() => {});
-          return interaction.editReply({ content: "🔓 ปลดล็อกห้องให้เฉพาะ สมาชิกที่มียศที่กำหนด เข้าใช้งานได้ปกติแล้วครับ คนทั่วไปจะยังเข้าไม่ได้" });
-        } else {
-          return interaction.editReply({ content: "⚠️ ไม่สามารถปลดล็อกเฉพาะยศได้ เนื่องจากคุณไม่ได้ตั้งค่า `ALLOW_ROLE_ID` ไว้ในระบบครับ" });
-        }
-      }
-      
-      if (interaction.customId === "hide") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว สมาชิกทั่วไปข้างนอกจะไม่เห็นห้องนี้" });
-      }
-
-      if (interaction.customId === "show") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
+        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: false }).catch(() => {});
         await channel.permissionOverwrites.edit(data.owner, { ViewChannel: true, Connect: true }).catch(() => {});
+        return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนยังเห็นห้องอยู่ แต่ไม่สามารถกดเชื่อมต่อเข้ามาได้ครับ" });
+      }
 
-        return interaction.editReply({ content: "👁 แสดงห้องเรียบร้อยแล้ว! ตอนนี้ทุกคนจะเห็นห้องของคุณ แต่จะมีแค่ยศพิเศษเท่านั้นที่กดเข้ามาได้" });
+      // 🔓 ปุ่มปลดล็อกห้อง: เปิดให้ทุกคนเห็น และทุกคนสามารถกดเข้าห้องได้ตามปกติ
+      if (interaction.customId === "unlock") {
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true }).catch(() => {});
+        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
+        return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว! ตอนนี้สมาชิกทุกคนสามารถมองเห็นและกดเข้าห้องของคุณได้ตามปกติแล้วครับ" });
       }
     }
 
