@@ -161,7 +161,7 @@ client.on("interactionCreate", async (interaction) => {
         new ButtonBuilder().setCustomId("deny").setEmoji("🚫").setStyle(ButtonStyle.Secondary)
       );
 
-      return interaction.reply({ embeds: [embed], components: [row1, row2] });
+      return interaction.reply({ embeds: [embed], components: [row1, row2], ephemeral: true });
     }
 
     // 2. จัดการปุ่มกดต่าง ๆ (Buttons)
