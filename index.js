@@ -54,10 +54,10 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง (ซ่อนและล็อกอัตโนมัติ) และโอนเจ้าของ =====
+// ===== ระบบสร้างห้อง (เปิดตาแต่ล็อกอัตโนมัติ) และโอนเจ้าของ =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
-    // 1. สร้างห้องใหม่แบบล็อกการมองเห็นและล็อกการเข้าตั้งแต่เริ่มต้น
+    // 1. สร้างห้องใหม่แบบเปิดให้ทุกคนเห็น แต่ล็อกไม่ให้เข้าตั้งแต่เริ่มต้น
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
@@ -66,14 +66,16 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
+        // 🛠 ตั้งค่าให้สมาชิกทุกคนมองเห็นห้องได้ทันที แต่กดจอยไม่ได้ตั้งแต่เริ่มสร้าง
         permissionOverwrites: [
           {
             id: guildId, // ยศ @everyone (สมาชิกทุกคน)
-            deny: ["ViewChannel", "Connect"], // 🚫 ซ่อนห้อง และ 🚫 ล็อกไม่ให้คนทั่วไปกดเข้า
+            allow: ["ViewChannel"], // ✅ เปิดให้เห็นห้องในรายชื่อช่องเสียง
+            deny: ["Connect"],      // 🚫 ล็อกห้องไว้ ไม่ให้คนธรรมดาคลิกเข้า
           },
           {
             id: ownerId, // เจ้าของห้อง
-            allow: ["ViewChannel", "Connect"], // ✅ เปิดให้เห็นและเข้าใช้งานได้ปกติ
+            allow: ["ViewChannel", "Connect"], // ✅ เปิดให้เจ้าของเห็นและเข้าใช้งานได้ปกติ
           },
           {
             id: client.user.id, // ตัวบอทเอง
@@ -128,7 +130,7 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.commandName === "room") {
         const embed = new EmbedBuilder()
           .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องที่สร้างใหม่จะถูกซ่อนและล็อกโดยอัตโนมัติ")
+          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องที่สร้างใหม่จะถูกตั้งค่าให้มองเห็นได้ แต่จะล็อกไว้โดยอัตโนมัติ")
           .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
           .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
           .setColor(0x2b2d31);
@@ -209,12 +211,10 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "unlock") {
-        // 🛠 แก้ไขจุดนี้: ปลดล็อกให้เฉพาะยศที่ตั้งค่าไว้ใช้งานได้เท่านั้น
-        
-        // 1. ล็อกยศทั่วไป (@everyone) ไว้ไม่ให้เข้าเหมือนเดิม (แต่ให้มองเห็นห้องไว้)
+        // ล็อกยศทั่วไป (@everyone) ไว้ไม่ให้เข้าเหมือนเดิม (แต่ให้มองเห็นห้องไว้)
         await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false, ViewChannel: true }).catch(() => {});
         
-        // 2. ถ้าเซ็ตยศพิเศษไว้ ให้ยศนั้นเปิดตาและเปิดให้เข้าห้องได้ทันที
+        // ถ้าเซ็ตยศพิเศษไว้ ให้ยศนั้นเปิดตาและเปิดให้เข้าห้องได้ทันที
         if (allowRoleId) {
           await channel.permissionOverwrites.edit(allowRoleId, { Connect: true, ViewChannel: true }).catch(() => {});
           return interaction.editReply({ content: "🔓 ปลดล็อกห้องให้เฉพาะ สมาชิกที่มียศที่กำหนด เข้าใช้งานได้ปกติแล้วครับ คนทั่วไปจะยังเข้าไม่ได้" });
