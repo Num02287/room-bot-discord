@@ -54,7 +54,7 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง และบังคับย้ายคนสร้างเข้าห้องใหม่ทันที =====
+// ===== ระบบสร้างห้องอัตโนมัติ + บล็อกคนไม่มียศทันที + ย้ายคนสร้างเข้าห้อง =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     // 1. ตรวจสอบเมื่อมีการกดเข้าห้องสร้างหลัก (Create Channel)
@@ -63,10 +63,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       const ownerId = newState.member.id;
       const creatorMember = newState.member; // ตัวคนกดสร้างห้อง
       
-      // ดึงข้อมูลห้องสร้างหลัก ณ ปัจจุบัน เพื่อเช็คคนที่ติดค้างอยู่ข้างใน
+      // ดึงข้อมูลห้องสร้างหลัก ณ ปัจจุบัน เพื่อเช็คคนอื่นที่ติดมาด้วย
       const createChannel = newState.guild.channels.cache.get(createChannelId);
 
-      // สร้างช่องเสียงส่วนตัวห้องใหม่
+      // 🔒 สร้างห้องใหม่แบบ "ล็อกคนไม่มียศอัตโนมัติ" ตั้งแต่เกิด
       const newCustomChannel = await newState.guild.channels.create({
         name: `📍・ห้องส่วนตัวของ ${creatorMember.user.username}`,
         type: ChannelType.GuildVoice,
@@ -74,12 +74,12 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         permissionOverwrites: [
           {
             id: guildId, // ยศ @everyone (คนทั่วไป / คนไม่มียศ)
-            deny: ["Connect"], // 🚫 บล็อกไม่ให้กดเข้าห้องตั้งแต่แรกสร้าง
+            deny: ["Connect"], // 🚫 ล็อกห้องทันทีตั้งแต่เริ่มสร้าง (คนไม่มียศกดเข้าไม่ได้)
             allow: ["ViewChannel"] // แต่ยังคงให้มองเห็นห้องปกติ
           },
           {
             id: ownerId, // ตัวเจ้าของห้อง
-            allow: ["ViewChannel", "Connect"] // เข้าห้องได้ปกติแน่นอน
+            allow: ["ViewChannel", "Connect"] // เข้าห้องได้ชัวร์ 100%
           },
           {
             id: client.user.id, // ตัวบอทเอง
@@ -88,7 +88,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         ]
       });
 
-      // ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
+      // 🛠 ดึงทุกยศในเซิร์ฟเวอร์มาเปิดสิทธิ์เข้าห้องให้ (ยกเว้นยศบอท และ ยศ @everyone)
       const roles = await newState.guild.roles.fetch().catch(() => []);
       for (const [roleId, role] of roles) {
         if (!role.managed && roleId !== guildId) {
@@ -99,7 +99,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // บันทึกข้อมูลเจ้าของห้องชั่วคราวเก็บไว้ในระบบ Map
       tempChannels.set(newCustomChannel.id, { owner: ownerId });
 
-      // 🔥 [จุดแก้ไขสำคัญ] สั่งย้ายตัวคนสร้างห้อง (ตัวคุณ) ลงไปในห้องใหม่ทันทีแบบบังคับ 100% ก่อน
+      // 🚀 ย้ายตัวคนสร้างห้อง (ตัวคุณ) ลงไปในห้องใหม่ที่เพิ่งสร้างและล็อกแล้วทันที
       await creatorMember.voice.setChannel(newCustomChannel).catch((err) => {
         console.error("ไม่สามารถย้ายตัวคนสร้างห้องได้:", err);
       });
