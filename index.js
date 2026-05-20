@@ -299,7 +299,7 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
 
       if (interaction.customId === "rename_room") {
         const name = interaction.fields.getTextInputValue("room_name");
-        await channel.setName(`📍・${name}`).catch(() => {});
+        await channel.setName(`・${name}`).catch(() => {});
         return interaction.reply({ content: `✏️ เปลี่ยนชื่อห้องเป็น **${name}** เรียบร้อยแล้ว`, ephemeral: true });
       }
       if (interaction.customId === "limit_room") {
