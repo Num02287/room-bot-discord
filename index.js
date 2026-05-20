@@ -54,10 +54,10 @@ client.once("ready", async () => {
   }
 });
 
-// ===== ระบบสร้างห้อง (ซ่อนอัตโนมัติ) และโอนเจ้าของ =====
+// ===== ระบบสร้างห้อง (ซ่อนและล็อกอัตโนมัติ) และโอนเจ้าของ =====
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
-    // 1. สร้างห้องใหม่แบบล็อกการมองเห็นตั้งแต่เริ่มต้น
+    // 1. สร้างห้องใหม่แบบล็อกการมองเห็นและล็อกการเข้าตั้งแต่เริ่มต้น
     if (newState.channelId === createChannelId) {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
@@ -66,11 +66,11 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         name: `📍・ห้องส่วนตัวของ ${newState.member.user.username}`,
         type: ChannelType.GuildVoice,
         parent: categoryId,
-        // 🛠 ล็อกไม่ให้คนทั่วไปเห็นห้องตั้งแต่กดสร้าง
+        // 🛠 ตั้งค่าล็อกและซ่อนตั้งแต่เริ่มสร้างห้อง
         permissionOverwrites: [
           {
             id: guildId, // ยศ @everyone (สมาชิกทุกคน)
-            deny: ["ViewChannel"], // 🚫 ปิดตา สมาชิกธรรมดาจะมองไม่เห็นห้องนี้
+            deny: ["ViewChannel", "Connect"], // 🚫 ซ่อนห้อง และ 🚫 ล็อกไม่ให้คนทั่วไปกดเข้า
           },
           {
             id: ownerId, // เจ้าของห้อง
@@ -130,7 +130,7 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.commandName === "room") {
         const embed = new EmbedBuilder()
           .setTitle("🏠 ระบบสร้างห้องส่วนตัวประจำโซน")
-          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องที่สร้างใหม่จะถูกซ่อนจากบุคคลภายนอกโดยอัตโนมัติ")
+          .setDescription("🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n🔹 **หมายเหตุ:** ห้องที่สร้างใหม่จะถูกซ่อนและล็อกโดยอัตโนมัติ")
           .setImage("https://i.ibb.co/Kjbw5BGb/image.png")
           .setFooter({ text: "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ" })
           .setColor(0x2b2d31);
@@ -223,7 +223,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "show") {
-        // 🛠 แก้ไขจุดนี้: สมาชิกทั่วไปมองเห็นห้องได้ แต่กดเข้าไม่ได้ (ขึ้นรูปกุญแจล็อก)
+        // สมาชิกทั่วไปมองเห็นห้องได้ แต่กดเข้าไม่ได้ (ขึ้นรูปกุญแจล็อก)
         await channel.permissionOverwrites.edit(interaction.guild.id, { 
           ViewChannel: true,   // ✅ เปิดให้เห็นชื่อห้อง
           Connect: false       // 🚫 บล็อกไม่ให้กดเข้าห้อง
