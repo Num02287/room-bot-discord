@@ -276,25 +276,30 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. แค่เปิดการมองเห็นให้ทุกคน โดยไม่แตะต้องสิทธิ์ Connect ของคนอื่นที่เคยได้รับอนุญาตเป็นรายบุคคล
+    // 1. จัดการสิทธิ์ของ @everyone ในก้อนเดียว (รวม ViewChannel และ Connect ไว้ด้วยกัน)
+    // ตั้งค่าให้เห็นห้อง (ViewChannel: true) แต่ห้ามเข้า (Connect: false)
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
-        ViewChannel: true 
-    }).catch(console.error);
-
-    // 2. ตั้งค่า Connect ให้คนทั่วไปเข้าไม่ได้
-    await channel.permissionOverwrites.edit(interaction.guild.id, { 
+        ViewChannel: true,
         Connect: false 
     }).catch(console.error);
 
-    // 3. ยืนยันสิทธิ์ให้เจ้าของและยศพิเศษเข้าได้เสมอ
+    // 2. ให้เจ้าของห้องเข้าได้เสมอ
     await channel.permissionOverwrites.edit(data.owner, { Connect: true }).catch(console.error);
     
+    // 3. ตรวจสอบว่าห้องถูกล็อกอยู่หรือไม่ก่อนให้ยศพิเศษเข้า
+    // สมมติว่าคุณเก็บสถานะไว้ใน data.isLocked ตามที่คุยกันก่อนหน้านี้
     if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }).catch(console.error);
+        if (data.isLocked) {
+            // ถ้าห้องล็อกอยู่ แม้จะ show ก็ยังไม่ให้ยศพิเศษเข้า
+            await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(console.error);
+        } else {
+            // ถ้าห้องไม่ล็อก ปล่อยให้ยศพิเศษเข้าได้
+            await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }).catch(console.error);
+        }
     }
 
     return interaction.editReply({ 
-        content: "👁️ แสดงห้องเรียบร้อยแล้ว" 
+        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${data.isLocked ? "" : ""}` 
     });
         }
     }
