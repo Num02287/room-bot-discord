@@ -301,7 +301,7 @@ if (interaction.customId === "show") {
         await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true });
     }
 
-    return interaction.editReply({ content: "👁️ แสดงห้องให้ทุกคนเห็นแล้ว (แต่คนไม่มียศยังเข้าไม่ได้)" });
+    return interaction.editReply({ content: "👁️ แสดงห้องเรียบร้อยแล้ว" });
 }
     }
 
