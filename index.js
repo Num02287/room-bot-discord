@@ -250,7 +250,7 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         }
 
         return interaction.editReply({ 
-            content: "👁️ แสดงห้องให้คนอื่นเห็นแล้ว (สถานะการล็อกห้องยังคงเดิม)" 
+            content: "👁️ แสดงห้องแล้ว " 
         });
       }
     }
