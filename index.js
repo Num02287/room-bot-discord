@@ -286,17 +286,23 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         await channel.setName(`${name}`).catch(() => {});
         return interaction.reply({ content: `✏️ เปลี่ยนชื่อห้องเป็น **${name}** เรียบร้อยแล้ว`, ephemeral: true });
       }
+      
       if (interaction.customId === "limit_room") { 
         const limitInput = interaction.fields.getTextInputValue("limit_input"); 
         const limit = parseInt(limitInput); 
-        if (isNaN(limit) || limit < 0 || limit > 99) return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true }); 
         
-        // แก้ไข: ถ้าใส่ 1 ให้สั่งจำกัด 0 (เพราะ Discord นับคนอื่น) 
-        // ถ้าใส่ 2 ให้สั่งจำกัด 1
-        const finalLimit = limit === 0 ? 0 : limit - 1;
+        if (isNaN(limit) || limit < 0 || limit > 99) {
+          return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true }); 
+        }
+
+        // ถ้าใส่ 0 คือไม่จำกัด (ใช้ค่า 0) ถ้าใส่เลขอื่นให้ใช้เลขนั้นตามตรง
+        const finalLimit = limit === 0 ? 0 : limit;
         
         await channel.setUserLimit(finalLimit).catch(() => {}); 
-        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนรวมเจ้าของไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** เรียบร้อยแล้ว`, ephemeral: true }); 
+        return interaction.reply({ 
+            content: `🎯 ตั้งจำกัดจำนวนคนรวมเจ้าของไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** เรียบร้อยแล้ว`, 
+            ephemeral: true 
+        }); 
       }
     }
 
