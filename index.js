@@ -230,8 +230,12 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       }
       
       if (interaction.customId === "hide") {
+        // 1. ซ่อนห้องจาก everyone เท่านั้น
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false }).catch(() => {});
+        // 2. ให้เจ้าของห้องเห็นห้องตัวเองเสมอ (ป้องกันเจ้าของห้องมองไม่เห็นห้องตัวเอง)
+        await channel.permissionOverwrites.edit(interaction.member.id, { ViewChannel: true }).catch(() => {});
+        // 3. ยศพิเศษ (allowRoleId) เราไม่ต้องไปแตะต้อง (ไม่ต้อง edit) 
+        // เพื่อให้สิทธิ์ ViewChannel เดิมที่มีอยู่ (ซึ่งปกติแอดมินหรือยศสูงจะมีสิทธิ์นี้อยู่แล้ว) ยังคงอยู่เหมือนเดิม 
         return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
       }
 
