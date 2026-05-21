@@ -276,39 +276,32 @@ if (interaction.customId === "hide") {
 
 // 1. ปุ่ม LOCK
 if (interaction.customId === "lock") {
-    // ปิดการเข้าถึงของทุกคน (ยกเว้นเจ้าของและบอท)
-    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
+    // ปิดสิทธิ์ Connect ของยศพิเศษ ส่วน @everyone ปิดไว้อยู่แล้ว
     if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false });
-    return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว (ทุกคนเข้าไม่ได้)" });
+    return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว (เฉพาะคนมียศถึงจะเข้าได้)" });
 }
 
 // 2. ปุ่ม UNLOCK
 if (interaction.customId === "unlock") {
-    // เปิดการเข้าถึงของทุกคน
-    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
+    // เปิดสิทธิ์ Connect ให้ยศพิเศษ
     if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true });
-    return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (ทุกคนเข้าได้)" });
+    return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (คนที่มียศสามารถเข้าได้)" });
 }
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
-    // เช็คสถานะปัจจุบันว่าถูกล็อกไว้หรือไม่ (จาก permission)
-    const isLocked = channel.permissionOverwrites.cache.get(interaction.guild.id)?.deny.has('Connect');
+    // ให้ทุกคนมองเห็นห้อง (ViewChannel: true)
+    await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
+    
+    // ตั้งค่า @everyone ให้เข้าไม่ได้แน่นอน
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
 
-    // เปลี่ยนแค่การมองเห็น (ViewChannel) โดยปล่อยค่า Connect ให้เป็นไปตามสถานะเดิมที่เคยตั้งไว้
-    await channel.permissionOverwrites.edit(interaction.guild.id, { 
-        ViewChannel: true 
-    });
-
+    // ตั้งค่าให้ยศพิเศษมองเห็นห้อง
     if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, { 
-            ViewChannel: true 
-        });
+        await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true });
     }
 
-    return interaction.editReply({ 
-        content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะห้องยังคง: ${isLocked ? "🔒 ล็อกอยู่" : "🔓 เปิดอยู่"})` 
-    });
+    return interaction.editReply({ content: "👁️ แสดงห้องให้ทุกคนเห็นแล้ว (แต่คนไม่มียศยังเข้าไม่ได้)" });
 }
     }
 
