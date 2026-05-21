@@ -229,67 +229,135 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
       }
       
-      if (interaction.customId === "hide") {
+if (interaction.customId === "hide") {
+
         // รายชื่อ ID ยศใหญ่ที่ต้องการให้มองเห็นห้อง
+
         const bigRoleIds = [
+
           "1500549655107469535", "1502362111345426432", "1492931714887192739", 
+
           "1492931717437063342", "1492931719832014978", "1493194473994326019", 
+
           "1497961308530802691", "1494244850919280724", "1492934494616027197", 
+
           "1493279265582616721", "1492935140400435265", "1492934562211168349", 
+
           "1493253810993238169", "1492934660605346050", "1492934842483085536", 
+
           "1493204336874881147", "1492934922896146537", "1492934607534952559", 
+
           "1500491781983178825", "1500521553446834290", "1492931721384038480", 
+
           "1501857544400932904", "1493650662624592032", "1492931723330064425", 
+
           "1492931725129683124"
+
         ];
-  
+
+
+
         // สร้างรายการสิทธิ์พื้นฐาน
+
         const permissions = [
+
           {
+
             id: interaction.guild.id, // @everyone
+
             deny: ['ViewChannel'],    // ซ่อนจากทุกคน
+
           },
+
           {
+
             id: client.user.id,       // บอท
+
             allow: ['ViewChannel', 'Connect', 'ManageChannels', 'MoveMembers'],
+
           },
+
           {
+
             id: data.owner,           // เจ้าของห้อง
+
             allow: ['ViewChannel', 'Connect'],
+
           }
+
         ];
+
+
+
         // เพิ่มสิทธิ์ให้ยศใหญ่ทุกคนในรายการ
+
         bigRoleIds.forEach(roleId => {
+
           permissions.push({
+
             id: roleId,
+
             allow: ['ViewChannel'], // ยศใหญ่มองเห็น
+
           });
+
         });
+
+
+
         // บังคับเขียนทับสิทธิ์ทั้งหมดในห้องนี้
+
         await channel.permissionOverwrites.set(permissions).catch(console.error);
+
+
+
         return interaction.editReply({ 
+
           content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" 
+
         });
+
       }
-      
+
+
+
       if (interaction.customId === "show") {
+
         // อัปเดตเฉพาะสิทธิ์การมองเห็น (ViewChannel) ให้เป็น true
+
         // การไม่ระบุ Connect ในนี้ จะทำให้สิทธิ์ Connect เดิมที่มีอยู่ยังคงเดิมไม่เปลี่ยนแปลง
-          await channel.permissionOverwrites.edit(interaction.guild.id, { 
+
+        await channel.permissionOverwrites.edit(interaction.guild.id, { 
+
             ViewChannel: true 
+
         }).catch(console.error);
 
+
+
         // หากมียศพิเศษ (allowRoleId) ให้เปิดการมองเห็นด้วยเช่นกัน
+
         if (allowRoleId) {
+
             await channel.permissionOverwrites.edit(allowRoleId, { 
+
                 ViewChannel: true 
+
             }).catch(console.error);
+
         }
+
+
+
         return interaction.editReply({ 
+
             content: "👁️ แสดงห้องเรียบร้อยแล้ว " 
+
         });
+
       }
-    }
+
+    }  
 
       if (interaction.customId === "lock") {
         const perms = getBasePerms();
