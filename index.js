@@ -111,14 +111,20 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
       const data = tempChannels.get(oldState.channelId);
 
-      // ✨ แก้ไขส่วนนี้: ลบห้องทันทีถ้าเจ้าของห้องออก หรือ ห้องไม่มีคนเหลือแล้ว
-      if (oldState.member.id === data.owner || channel.members.size === 0) {
+// --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
+    if (oldState.channelId && tempChannels.has(oldState.channelId)) {
+      const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
+
+      // ถ้าไม่มีห้องแล้ว หรือ ไม่มีคนอยู่แล้ว ให้ลบห้องทิ้ง
+      if (!channel || channel.members.size === 0) {
+        if (channel) await channel.delete().catch(() => {});
         tempChannels.delete(oldState.channelId);
-        await channel.delete().catch((err) => console.error("❌ ไม่สามารถลบห้องได้:", err));
         return;
       }
 
-      // ระบบโอนเจ้าของอัตโนมัติ (จะทำงานต่อเมื่อเจ้าของออกแต่ยังมีคนอยู่ในห้อง)
+      const data = tempChannels.get(oldState.channelId);
+
+      // ระบบโอนเจ้าของอัตโนมัติ (ทำงานเฉพาะตอนเจ้าของห้องออก และยังมีคนอื่นอยู่ในห้อง)
       if (oldState.member.id === data.owner) {
         const newOwner = channel.members.first();
         if (newOwner) {
