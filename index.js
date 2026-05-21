@@ -235,47 +235,24 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
       }
 
-// 1. ปุ่ม Lock (ล็อกห้อง)
-if (interaction.customId === "lock") {
-    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
-    // ยศพิเศษให้ยังเข้าได้ หรือถ้าจะล็อกด้วยให้แก้ Connect เป็น false
-    if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }); 
-    return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว (คนอื่นเข้าไม่ได้)" });
-}
-
-// 2. ปุ่ม Unlock (ปลดล็อกห้อง)
-if (interaction.customId === "unlock") {
-    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
-    return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (คนอื่นเข้าได้)" });
-}
-
-// 3. ปุ่ม Show (แสดงห้อง - ซิงค์ตามสถานะการล็อกที่เจ้าของตั้งไว้)
-if (interaction.customId === "show") {
-    // 1. ดึงสิทธิ์ปัจจุบันของ @everyone
-    const everyoneRole = interaction.guild.id;
-    const currentPerms = channel.permissionOverwrites.resolve(everyoneRole);
-    
-    // 2. เช็คว่าปัจจุบันห้องถูกล็อกอยู่หรือไม่ (ดูว่ามีการ Deny Connect หรือไม่)
-    const isLocked = currentPerms ? currentPerms.deny.has("Connect") : false;
-
-// ปุ่ม Show (แสดงห้อง - แก้ไขให้แสดงเฉยๆ ตามที่คุณต้องการ)
-if (interaction.customId === "show") {
-    // ใช้สิทธิ์ ViewChannel: true เท่านั้น ไม่ใส่ค่า Connect เพื่อไม่ให้บอทไปยุ่งกับสถานะเดิม
-    await channel.permissionOverwrites.edit(interaction.guild.id, { 
-        ViewChannel: true 
-    }).catch(() => {});
-
-    // อัปเดตยศพิเศษให้เห็นห้องด้วย (ถ้ามี)
-    if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, { 
+      if (interaction.customId === "show") {
+        // อัปเดตเฉพาะสิทธิ์การมองเห็น (ViewChannel) ให้เป็น true
+        // การไม่ระบุ Connect ในนี้ จะทำให้สิทธิ์ Connect เดิมที่มีอยู่ยังคงเดิมไม่เปลี่ยนแปลง
+        await channel.permissionOverwrites.edit(interaction.guild.id, { 
             ViewChannel: true 
-        }).catch(() => {});
-    }
+        }).catch(console.error);
 
-    return interaction.editReply({ 
-        content: "👁️ แสดงห้องแล้ว" 
-    });
-}
+        // หากมียศพิเศษ (allowRoleId) ให้เปิดการมองเห็นด้วยเช่นกัน
+        if (allowRoleId) {
+            await channel.permissionOverwrites.edit(allowRoleId, { 
+                ViewChannel: true 
+            }).catch(console.error);
+        }
+
+        return interaction.editReply({ 
+            content: "👁️ แสดงห้องให้คนอื่นเห็นแล้ว (สถานะการล็อกห้องยังคงเดิม)" 
+        });
+      }
     }
 
     // 3. จัดการเมนูเลือกสมาชิก (Select Menus)
