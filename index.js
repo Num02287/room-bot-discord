@@ -235,34 +235,35 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
       }
 
-      if (interaction.customId === "show") {
-        // 1. ตรวจสอบสิทธิ์ของทุกคน (@everyone) ในปัจจุบัน
-        const everyoneRole = interaction.guild.id;
-        const currentPerms = channel.permissionOverwrites.resolve(everyoneRole);
-        
-        // เช็คว่าตอนนี้ถูกล็อกอยู่หรือไม่ (ถ้า Connect เป็น false แสดงว่าล็อก)
-        const isLocked = currentPerms ? currentPerms.deny.has("Connect") : true;
+// 1. ปุ่ม Lock (ล็อกห้อง)
+if (interaction.customId === "lock") {
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
+    // ยศพิเศษให้ยังเข้าได้ หรือถ้าจะล็อกด้วยให้แก้ Connect เป็น false
+    if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }); 
+    return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว (คนอื่นเข้าไม่ได้)" });
+}
 
-        // 2. ปรับสิทธิ์ใหม่
-        // ViewChannel: true = ให้เห็นห้องเสมอ
-        // Connect: ถ้าล็อกอยู่ให้เป็น false, ถ้าปลดล็อกอยู่ให้เป็น true
-        await channel.permissionOverwrites.edit(everyoneRole, { 
-            ViewChannel: true, 
-            Connect: !isLocked // ถ้าล็อกอยู่(true) จะได้ Connect: false (ยังล็อกอยู่)
-        }).catch(() => {});
+// 2. ปุ่ม Unlock (ปลดล็อกห้อง)
+if (interaction.customId === "unlock") {
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
+    return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (คนอื่นเข้าได้)" });
+}
 
-        // 3. จัดการในส่วนของ allowRoleId (ยศพิเศษ) ให้สอดคล้องกับสถานะปัจจุบันด้วย
-        if (allowRoleId) {
-            await channel.permissionOverwrites.edit(allowRoleId, { 
-                ViewChannel: true, 
-                Connect: true // ยศพิเศษยังคงเข้าได้เสมอ
-            }).catch(() => {});
-        }
+// 3. ปุ่ม Show (แสดงห้อง - ปรับ Logic ให้ซิงค์กับสถานะปัจจุบัน)
+if (interaction.customId === "show") {
+    // เช็คสิทธิ์ Connect ปัจจุบันของทุกคนในห้อง
+    const everyonePerms = channel.permissionOverwrites.resolve(interaction.guild.id);
+    const isLocked = everyonePerms?.deny.has("Connect"); // ถ้ามีสิทธิ์ Deny Connect แสดงว่าล็อกอยู่
 
-            return interaction.editReply({ 
-            content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะการเข้าถึง: ${isLocked ? "ล็อคอยู่" : "ปลดล็อคแล้ว"})` 
-        });
-      }
+    await channel.permissionOverwrites.edit(interaction.guild.id, { 
+        ViewChannel: true, // แสดงห้อง
+        Connect: !isLocked // ถ้าล็อกอยู่ ให้เป็น Connect: false, ถ้าปลดล็อกอยู่ ให้เป็น Connect: true
+    });
+
+    return interaction.editReply({ 
+        content: `👁️ แสดงห้องแล้ว สถานะตอนนี้คือ: **${isLocked ? "ล็อกอยู่ (มองเห็นแต่เข้าไม่ได้)" : "ปลดล็อกแล้ว (มองเห็นและเข้าได้)"}**` 
+    });
+}
     }
 
     // 3. จัดการเมนูเลือกสมาชิก (Select Menus)
