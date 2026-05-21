@@ -275,10 +275,12 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. ตรวจสอบสถานะการล็อกก่อน เพื่อนำไปแสดงผล
-    const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
+    // 1. ตรวจสอบสถานะการล็อกปัจจุบันจาก permission ของยศพิเศษ (หรือ @everyone)
+    // ถ้า Connect ถูกปฏิเสธ (deny) แปลว่าห้องกำลังล็อกอยู่
+    const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect') ?? false;
 
-    // 2. ปรับสิทธิ์ @everyone ให้มองเห็นได้
+    // 2. ปรับสิทธิ์ @everyone ให้มองเห็นห้อง (ViewChannel: true) 
+    // โดยไม่ไปแตะต้องสิทธิ์ Connect ของ @everyone เพื่อให้เจ้าของยังคุมได้เหมือนเดิม
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
         ViewChannel: true 
     }).catch(console.error);
@@ -289,16 +291,15 @@ if (interaction.customId === "show") {
         ViewChannel: true 
     }).catch(console.error);
     
-    // 4. จัดการยศพิเศษ (allowRoleId)
+    // 4. จัดการสิทธิ์ยศพิเศษ (ให้ยึดตามสถานะล็อกเดิม)
     if (allowRoleId) {
         await channel.permissionOverwrites.edit(allowRoleId, { 
-            Connect: true, // ตั้งให้เข้าได้เมื่อกด show
+            Connect: !isLocked, // ถ้าล็อกอยู่ ให้เป็น false (ห้ามเข้า), ถ้าไม่ล็อก ให้เป็น true (เข้าได้)
             ViewChannel: true 
         }).catch(console.error);
     }
 
-    // 5. เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง (ให้ปลอดภัยกว่าเดิม)
-    // การใช้ for...of ร่วมกับ await จะช่วยป้องกันปัญหาการลบสิทธิ์ค้าง
+    // 5. เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง (เพื่อความสะอาด)
     for (const [id, perm] of channel.permissionOverwrites.cache) {
         if (
             id !== interaction.guild.id && 
@@ -311,7 +312,7 @@ if (interaction.customId === "show") {
     }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องและเปิดให้ทุกคนเห็นเรียบร้อยแล้ว` 
+        content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะการเข้าถึง: ${isLocked ? "🔒 ล็อกอยู่" : "🔓 เปิดอยู่"})` 
     });
         }
     }
