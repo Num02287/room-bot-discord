@@ -276,32 +276,42 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. เปิดให้ทุกคนมองเห็นห้อง (ViewChannel: true) 
-    // แต่กำหนดให้ Everyone เข้าไม่ได้ (Connect: false)
+    // 1. ตั้งค่าพื้นฐาน: ทุกคนมองเห็น แต่ทุกคนเข้าไม่ได้
+    // การ set สิทธิ์ใหม่แบบนี้จะช่วยล้างสิทธิ์ Connect ของทุกคนให้เป็นไปตามที่เรากำหนด
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
         ViewChannel: true,
         Connect: false 
     }).catch(console.error);
 
-    // 2. เจ้าของห้องต้องเข้าได้เสมอ
-    await channel.permissionOverwrites.edit(data.owner, { Connect: true }).catch(console.error);
-
-    // 3. ตรวจสอบสถานะการล็อกของยศพิเศษ
-    // เราจะเช็คว่าตอนนี้ยศพิเศษเข้าได้ไหม (ถ้าเข้าไม่ได้ แสดงว่าเจ้าของห้องกด Lock ไว้)
-    const isCurrentlyLocked = allowRoleId && channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
-
+    // 2. เจ้าของห้องต้องเข้าได้เสมอ (บังคับให้เป็นตัวหลัก)
+    await channel.permissionOverwrites.edit(data.owner, { Connect: true, ViewChannel: true }).catch(console.error);
+    
+    // 3. จัดการยศพิเศษตามสถานะการล็อก
     if (allowRoleId) {
-        if (isCurrentlyLocked) {
-            // ถ้าห้องอยู่ในสถานะล็อก ให้คงสิทธิ์ Connect: false ไว้
-            await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(console.error);
-        } else {
-            // ถ้าห้องไม่ได้ล็อก ให้เปิดสิทธิ์ Connect ให้ยศพิเศษ
-            await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }).catch(console.error);
-        }
+        // เช็คว่ายศพิเศษถูกสั่ง deny Connect ไว้หรือไม่
+        const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
+        
+        await channel.permissionOverwrites.edit(allowRoleId, { 
+            Connect: !isLocked, // ถ้าล็อกอยู่ ให้เป็น false, ถ้าไม่ล็อก ให้เป็น true
+            ViewChannel: true 
+        }).catch(console.error);
     }
 
+    // 4. (จุดสำคัญ) เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง
+    // หากมีสมาชิกที่เคยถูกกด allow ไว้เป็นรายคน จะทำให้เขาเข้าได้แม้เราจะตั้ง @everyone ให้เข้าไม่ได้
+    // การวนลูปเช็คสมาชิกในห้องและเคลียร์สิทธิ์ที่ไม่ได้ตั้งใจจะให้ จะช่วยได้ครับ
+    channel.permissionOverwrites.cache.forEach(perm => {
+        // ถ้าไม่ใช่ @everyone, ไม่ใช่เจ้าของ, ไม่ใช่ยศพิเศษ, และไม่ใช่บอท ให้ลบสิทธิ์ทิ้ง
+        if (perm.id !== interaction.guild.id && 
+            perm.id !== data.owner && 
+            perm.id !== allowRoleId && 
+            perm.id !== client.user.id) {
+            perm.delete().catch(() => {});
+        }
+    });
+
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${isCurrentlyLocked ? "(ห้องล็อกอยู่ ยศพิเศษเข้าไม่ได้)" : "(ยศพิเศษสามารถเข้าได้)"}` 
+        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${isCurrentlyLocked ? "" : ""}` 
     });
         }
     }
