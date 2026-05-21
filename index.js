@@ -105,23 +105,11 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     if (oldState.channelId && tempChannels.has(oldState.channelId)) {
       const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
 
-      // ถ้าไม่มีห้องแล้ว หรือ ไม่มีคนอยู่แล้ว ให้ลบห้องทิ้ง
+      // ถ้าไม่มีคนอยู่ในห้องแล้ว ให้ลบห้องทิ้ง (เจ้าของเดิมยังถือสิทธิ์คุมห้องอยู่จนกว่าห้องจะลบ)
       if (!channel || channel.members.size === 0) {
         if (channel) await channel.delete().catch(() => {});
         tempChannels.delete(oldState.channelId);
         return;
-      }
-
-      const data = tempChannels.get(oldState.channelId);
-
-      // ระบบโอนเจ้าของอัตโนมัติ (ทำงานเฉพาะตอนเจ้าของห้องออก และยังมีคนอื่นอยู่ในห้อง)
-      if (oldState.member.id === data.owner) {
-        const newOwner = channel.members.first();
-        if (newOwner) {
-          data.owner = newOwner.id;
-          await channel.permissionOverwrites.edit(newOwner.id, { ViewChannel: true, Connect: true }).catch(() => {});
-          await channel.setName(`ห้องส่วนตัวของ ${newOwner.user.username}`).catch(() => {});
-        }
       }
     }
   } catch (error) {
