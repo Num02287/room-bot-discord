@@ -258,23 +258,22 @@ if (interaction.customId === "show") {
     // 2. เช็คว่าปัจจุบันห้องถูกล็อกอยู่หรือไม่ (ดูว่ามีการ Deny Connect หรือไม่)
     const isLocked = currentPerms ? currentPerms.deny.has("Connect") : false;
 
-    // 3. แก้ไขเฉพาะการมองเห็น (ViewChannel) โดยคงค่า Connect เดิมเอาไว้
-    // เราใช้ { Connect: isLocked ? false : true } เพื่อย้ำสถานะเดิมที่เจ้าของตั้งไว้
-    await channel.permissionOverwrites.edit(everyoneRole, { 
-        ViewChannel: true,
-        Connect: isLocked ? false : true 
+// ปุ่ม Show (แสดงห้อง - แก้ไขให้แสดงเฉยๆ ตามที่คุณต้องการ)
+if (interaction.customId === "show") {
+    // ใช้สิทธิ์ ViewChannel: true เท่านั้น ไม่ใส่ค่า Connect เพื่อไม่ให้บอทไปยุ่งกับสถานะเดิม
+    await channel.permissionOverwrites.edit(interaction.guild.id, { 
+        ViewChannel: true 
     }).catch(() => {});
 
-    // 4. (ถ้ามียศพิเศษ) ให้ยศพิเศษยังเข้าได้เสมอไม่ว่าห้องจะล็อกหรือไม่
+    // อัปเดตยศพิเศษให้เห็นห้องด้วย (ถ้ามี)
     if (allowRoleId) {
         await channel.permissionOverwrites.edit(allowRoleId, { 
-            ViewChannel: true, 
-            Connect: true 
+            ViewChannel: true 
         }).catch(() => {});
     }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องแล้ว ( ${isLocked ? "🔒 " : "🔓 "})` 
+        content: "👁️ แสดงห้องแล้ว" 
     });
 }
     }
