@@ -229,36 +229,26 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
       }
       
-if (interaction.customId === "hide") {
-    // เตรียมรายการสิทธิ์ใหม่ทั้งหมด
-    const newPermissions = [
-        {
-            id: interaction.guild.id, // @everyone
-            deny: ['ViewChannel'],    // บังคับซ่อนทันที
-        },
-        {
+      if (interaction.customId === "hide") {
+        // ใช้ .set เพื่อล้างสิทธิ์เดิมทั้งหมดและกำหนดใหม่
+        // โดยให้สิทธิ์เฉพาะ เจ้าของห้อง และ บอท เท่านั้น
+        await channel.permissionOverwrites.set([
+          {
+            id: interaction.guild.id, // @everyone (คนอื่นทั้งหมด)
+            deny: ['ViewChannel'],    // บังคับซ่อน
+          },
+          {
             id: client.user.id,       // บอท
-            allow: ['ViewChannel', 'Connect', 'ManageChannels'],
-        },
-        {
+            allow: ['ViewChannel', 'Connect', 'ManageChannels', 'MoveMembers'],
+          },
+          {
             id: data.owner,           // เจ้าของห้อง
             allow: ['ViewChannel', 'Connect'],
-        }
-    ];
+          }
+        ]).catch(console.error);
 
-    // ถ้ามี ID ยศสูงที่ระบุไว้ ให้เพิ่มสิทธิ์การมองเห็นเข้าไป
-    if (allowRoleId) {
-        newPermissions.push({
-            id: allowRoleId,
-            allow: ['ViewChannel'],
-        });
-    }
-
-    // สั่งเขียนทับสิทธิ์เดิมทั้งหมดในห้อง
-    await channel.permissionOverwrites.set(newPermissions).catch(console.error);
-
-    return interaction.editReply({ content: "🙈 ซ่อนห้องจากทุกคนเรียบร้อยแล้วครับ (ยศสูงยังคงเห็นได้)" });
-}
+        return interaction.editReply({ content: "🙈 ซ่อนห้องจากทุกคนเรียบร้อยแล้ว (เห็นได้แค่เจ้าของห้องเท่านั้น)" });
+      }
 
       if (interaction.customId === "show") {
         // อัปเดตเฉพาะสิทธิ์การมองเห็น (ViewChannel) ให้เป็น true
