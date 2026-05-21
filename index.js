@@ -293,7 +293,7 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
           return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true });
         }
         await channel.setUserLimit(limit).catch(() => {});
-        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** เรียบร้อยแล้ว`, ephemeral: true });
+        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit " คน"}** เรียบร้อยแล้ว`, ephemeral: true });
       }
     }
 
