@@ -229,34 +229,36 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
       }
       
-      if (interaction.customId === "hide") {
-        // กำหนดรายการสิทธิ์ใหม่ทั้งหมดสำหรับห้องนี้
-        const overwrites = [
-          {
-            id: interaction.guild.id, // @everyone (ทุกคน)
-            deny: ['ViewChannel'],    // บังคับซ่อน
-          },
-          {
-            id: client.user.id,       // บอท (ห้ามซ่อนเด็ดขาด)
-            allow: ['ViewChannel', 'Connect', 'ManageChannels', 'MoveMembers'],
-          },
-          {
-            id: data.owner,           // เจ้าของห้อง (ต้องเห็น)
+if (interaction.customId === "hide") {
+    // เตรียมรายการสิทธิ์ใหม่ทั้งหมด
+    const newPermissions = [
+        {
+            id: interaction.guild.id, // @everyone
+            deny: ['ViewChannel'],    // บังคับซ่อนทันที
+        },
+        {
+            id: client.user.id,       // บอท
+            allow: ['ViewChannel', 'Connect', 'ManageChannels'],
+        },
+        {
+            id: data.owner,           // เจ้าของห้อง
             allow: ['ViewChannel', 'Connect'],
-          }
-        ];
-  
-        // ถ้ามี "ยศสูง" หรือ allowRoleId ให้เพิ่มเข้าไปในรายการอนุญาตให้มองเห็น
-        if (allowRoleId) {
-          overwrites.push({
-            id: allowRoleId,
-            allow: ['ViewChannel'], // ให้ยศสูงมองเห็นได้
-          });
         }
-        // นำค่าทั้งหมดไปสั่งตั้งค่าห้อง
-        await channel.permissionOverwrites.set(overwrites).catch(console.error);
-        return interaction.editReply({ content: "🙈 ซ่อนห้องจากคนทั่วไปแล้ว (ยศสูงยังคงมองเห็น)" });
-      }
+    ];
+
+    // ถ้ามี ID ยศสูงที่ระบุไว้ ให้เพิ่มสิทธิ์การมองเห็นเข้าไป
+    if (allowRoleId) {
+        newPermissions.push({
+            id: allowRoleId,
+            allow: ['ViewChannel'],
+        });
+    }
+
+    // สั่งเขียนทับสิทธิ์เดิมทั้งหมดในห้อง
+    await channel.permissionOverwrites.set(newPermissions).catch(console.error);
+
+    return interaction.editReply({ content: "🙈 ซ่อนห้องจากทุกคนเรียบร้อยแล้วครับ (ยศสูงยังคงเห็นได้)" });
+}
 
       if (interaction.customId === "show") {
         // อัปเดตเฉพาะสิทธิ์การมองเห็น (ViewChannel) ให้เป็น true
