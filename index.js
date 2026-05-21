@@ -250,7 +250,7 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         }
 
         return interaction.editReply({ 
-            content: "👁️ แสดงห้องแล้ว " 
+            content: "👁️ แสดงห้องเรียบร้อยแล้ว " 
         });
       }
     }
