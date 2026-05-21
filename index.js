@@ -276,30 +276,32 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. จัดการสิทธิ์ของ @everyone ในก้อนเดียว (รวม ViewChannel และ Connect ไว้ด้วยกัน)
-    // ตั้งค่าให้เห็นห้อง (ViewChannel: true) แต่ห้ามเข้า (Connect: false)
+    // 1. เปิดให้ทุกคนมองเห็นห้อง (ViewChannel: true) 
+    // แต่กำหนดให้ Everyone เข้าไม่ได้ (Connect: false)
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
         ViewChannel: true,
         Connect: false 
     }).catch(console.error);
 
-    // 2. ให้เจ้าของห้องเข้าได้เสมอ
+    // 2. เจ้าของห้องต้องเข้าได้เสมอ
     await channel.permissionOverwrites.edit(data.owner, { Connect: true }).catch(console.error);
-    
-    // 3. ตรวจสอบว่าห้องถูกล็อกอยู่หรือไม่ก่อนให้ยศพิเศษเข้า
-    // สมมติว่าคุณเก็บสถานะไว้ใน data.isLocked ตามที่คุยกันก่อนหน้านี้
+
+    // 3. ตรวจสอบสถานะการล็อกของยศพิเศษ
+    // เราจะเช็คว่าตอนนี้ยศพิเศษเข้าได้ไหม (ถ้าเข้าไม่ได้ แสดงว่าเจ้าของห้องกด Lock ไว้)
+    const isCurrentlyLocked = allowRoleId && channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
+
     if (allowRoleId) {
-        if (data.isLocked) {
-            // ถ้าห้องล็อกอยู่ แม้จะ show ก็ยังไม่ให้ยศพิเศษเข้า
+        if (isCurrentlyLocked) {
+            // ถ้าห้องอยู่ในสถานะล็อก ให้คงสิทธิ์ Connect: false ไว้
             await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(console.error);
         } else {
-            // ถ้าห้องไม่ล็อก ปล่อยให้ยศพิเศษเข้าได้
+            // ถ้าห้องไม่ได้ล็อก ให้เปิดสิทธิ์ Connect ให้ยศพิเศษ
             await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }).catch(console.error);
         }
     }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${data.isLocked ? "" : ""}` 
+        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${isCurrentlyLocked ? "(ห้องล็อกอยู่ ยศพิเศษเข้าไม่ได้)" : "(ยศพิเศษสามารถเข้าได้)"}` 
     });
         }
     }
