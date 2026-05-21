@@ -236,9 +236,32 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       }
 
       if (interaction.customId === "show") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
-        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
-        return interaction.editReply({ content: "👁️ แสดงห้องเรียบร้อยแล้ว" });
+        // 1. ตรวจสอบสิทธิ์ของทุกคน (@everyone) ในปัจจุบัน
+        const everyoneRole = interaction.guild.id;
+        const currentPerms = channel.permissionOverwrites.resolve(everyoneRole);
+        
+        // เช็คว่าตอนนี้ถูกล็อกอยู่หรือไม่ (ถ้า Connect เป็น false แสดงว่าล็อก)
+        const isLocked = currentPerms ? currentPerms.deny.has("Connect") : true;
+
+        // 2. ปรับสิทธิ์ใหม่
+        // ViewChannel: true = ให้เห็นห้องเสมอ
+        // Connect: ถ้าล็อกอยู่ให้เป็น false, ถ้าปลดล็อกอยู่ให้เป็น true
+        await channel.permissionOverwrites.edit(everyoneRole, { 
+            ViewChannel: true, 
+            Connect: !isLocked // ถ้าล็อกอยู่(true) จะได้ Connect: false (ยังล็อกอยู่)
+        }).catch(() => {});
+
+        // 3. จัดการในส่วนของ allowRoleId (ยศพิเศษ) ให้สอดคล้องกับสถานะปัจจุบันด้วย
+        if (allowRoleId) {
+            await channel.permissionOverwrites.edit(allowRoleId, { 
+                ViewChannel: true, 
+                Connect: true // ยศพิเศษยังคงเข้าได้เสมอ
+            }).catch(() => {});
+        }
+
+            return interaction.editReply({ 
+            content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะการเข้าถึง: ${isLocked ? "ล็อคอยู่" : "ปลดล็อคแล้ว"})` 
+        });
       }
     }
 
