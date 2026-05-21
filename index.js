@@ -274,47 +274,42 @@ if (interaction.customId === "hide") {
         });
       }
 
-if (interaction.customId === "show") {
-    // 1. ตรวจสอบสถานะการล็อกปัจจุบันจาก permission ของยศพิเศษ (หรือ @everyone)
-    // ถ้า Connect ถูกปฏิเสธ (deny) แปลว่าห้องกำลังล็อกอยู่
-    const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect') ?? false;
+// 1. ปุ่ม LOCK
+if (interaction.customId === "lock") {
+    // ปิดการเข้าถึงของทุกคน (ยกเว้นเจ้าของและบอท)
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
+    if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false });
+    return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว (ทุกคนเข้าไม่ได้)" });
+}
 
-    // 2. ปรับสิทธิ์ @everyone ให้มองเห็นห้อง (ViewChannel: true) 
-    // โดยไม่ไปแตะต้องสิทธิ์ Connect ของ @everyone เพื่อให้เจ้าของยังคุมได้เหมือนเดิม
+// 2. ปุ่ม UNLOCK
+if (interaction.customId === "unlock") {
+    // เปิดการเข้าถึงของทุกคน
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
+    if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: true });
+    return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (ทุกคนเข้าได้)" });
+}
+
+// 3. ปุ่ม SHOW (แสดงห้อง)
+if (interaction.customId === "show") {
+    // เช็คสถานะปัจจุบันว่าถูกล็อกไว้หรือไม่ (จาก permission)
+    const isLocked = channel.permissionOverwrites.cache.get(interaction.guild.id)?.deny.has('Connect');
+
+    // เปลี่ยนแค่การมองเห็น (ViewChannel) โดยปล่อยค่า Connect ให้เป็นไปตามสถานะเดิมที่เคยตั้งไว้
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
         ViewChannel: true 
-    }).catch(console.error);
+    });
 
-    // 3. จัดการสิทธิ์ของเจ้าของห้อง (ให้เข้าได้เสมอ)
-    await channel.permissionOverwrites.edit(data.owner, { 
-        Connect: true, 
-        ViewChannel: true 
-    }).catch(console.error);
-    
-    // 4. จัดการสิทธิ์ยศพิเศษ (ให้ยึดตามสถานะล็อกเดิม)
     if (allowRoleId) {
         await channel.permissionOverwrites.edit(allowRoleId, { 
-            Connect: !isLocked, // ถ้าล็อกอยู่ ให้เป็น false (ห้ามเข้า), ถ้าไม่ล็อก ให้เป็น true (เข้าได้)
             ViewChannel: true 
-        }).catch(console.error);
-    }
-
-    // 5. เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง (เพื่อความสะอาด)
-    for (const [id, perm] of channel.permissionOverwrites.cache) {
-        if (
-            id !== interaction.guild.id && 
-            id !== data.owner && 
-            id !== allowRoleId && 
-            id !== client.user.id
-        ) {
-            await perm.delete().catch(() => {});
-        }
+        });
     }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะการเข้าถึง: ${isLocked ? "🔒 ล็อกอยู่" : "🔓 เปิดอยู่"})` 
+        content: `👁️ แสดงห้องเรียบร้อยแล้ว (สถานะห้องยังคง: ${isLocked ? "🔒 ล็อกอยู่" : "🔓 เปิดอยู่"})` 
     });
-        }
+}
     }
 
     // 3. จัดการเมนูเลือกสมาชิก (Select Menus)
