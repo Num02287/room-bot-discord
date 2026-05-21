@@ -275,42 +275,43 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. ตั้งค่าพื้นฐาน: ทุกคนมองเห็น แต่ทุกคนเข้าไม่ได้
-    // การ set สิทธิ์ใหม่แบบนี้จะช่วยล้างสิทธิ์ Connect ของทุกคนให้เป็นไปตามที่เรากำหนด
+    // 1. ตรวจสอบสถานะการล็อกก่อน เพื่อนำไปแสดงผล
+    const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
+
+    // 2. ปรับสิทธิ์ @everyone ให้มองเห็นได้
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
-        ViewChannel: true,
-        Connect: false 
+        ViewChannel: true 
     }).catch(console.error);
 
-    // 2. เจ้าของห้องต้องเข้าได้เสมอ (บังคับให้เป็นตัวหลัก)
-    await channel.permissionOverwrites.edit(data.owner, { Connect: true, ViewChannel: true }).catch(console.error);
+    // 3. จัดการสิทธิ์ของเจ้าของห้อง (ให้เข้าได้เสมอ)
+    await channel.permissionOverwrites.edit(data.owner, { 
+        Connect: true, 
+        ViewChannel: true 
+    }).catch(console.error);
     
-    // 3. จัดการยศพิเศษตามสถานะการล็อก
+    // 4. จัดการยศพิเศษ (allowRoleId)
     if (allowRoleId) {
-        // เช็คว่ายศพิเศษถูกสั่ง deny Connect ไว้หรือไม่
-        const isLocked = channel.permissionOverwrites.cache.get(allowRoleId)?.deny.has('Connect');
-        
         await channel.permissionOverwrites.edit(allowRoleId, { 
-            Connect: !isLocked, // ถ้าล็อกอยู่ ให้เป็น false, ถ้าไม่ล็อก ให้เป็น true
+            Connect: true, // ตั้งให้เข้าได้เมื่อกด show
             ViewChannel: true 
         }).catch(console.error);
     }
 
-    // 4. (จุดสำคัญ) เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง
-    // หากมีสมาชิกที่เคยถูกกด allow ไว้เป็นรายคน จะทำให้เขาเข้าได้แม้เราจะตั้ง @everyone ให้เข้าไม่ได้
-    // การวนลูปเช็คสมาชิกในห้องและเคลียร์สิทธิ์ที่ไม่ได้ตั้งใจจะให้ จะช่วยได้ครับ
-    channel.permissionOverwrites.cache.forEach(perm => {
-        // ถ้าไม่ใช่ @everyone, ไม่ใช่เจ้าของ, ไม่ใช่ยศพิเศษ, และไม่ใช่บอท ให้ลบสิทธิ์ทิ้ง
-        if (perm.id !== interaction.guild.id && 
-            perm.id !== data.owner && 
-            perm.id !== allowRoleId && 
-            perm.id !== client.user.id) {
-            perm.delete().catch(() => {});
+    // 5. เคลียร์สิทธิ์รายบุคคลที่ไม่เกี่ยวข้อง (ให้ปลอดภัยกว่าเดิม)
+    // การใช้ for...of ร่วมกับ await จะช่วยป้องกันปัญหาการลบสิทธิ์ค้าง
+    for (const [id, perm] of channel.permissionOverwrites.cache) {
+        if (
+            id !== interaction.guild.id && 
+            id !== data.owner && 
+            id !== allowRoleId && 
+            id !== client.user.id
+        ) {
+            await perm.delete().catch(() => {});
         }
-    });
+    }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องเรียบร้อยแล้ว ${isCurrentlyLocked ? "" : ""}` 
+        content: `👁️ แสดงห้องและเปิดให้ทุกคนเห็นเรียบร้อยแล้ว` 
     });
         }
     }
