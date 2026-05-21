@@ -230,17 +230,32 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       }
       
       if (interaction.customId === "hide") {
-        // บังคับซ่อนห้องจากทุกคน (everyone) โดยเฉพาะ
-        await channel.permissionOverwrites.edit(interaction.guild.id, { 
-            ViewChannel: false 
-        }).catch(console.error);
-
-        // ถ้าคุณต้องการให้ยศพิเศษ 'ไม่ถูกซ่อน' ต้องมั่นใจว่าบรรทัดนี้ 'ไม่มี' หรือถ้ามีต้องเป็น true
-        // ถ้าต้องการให้ยศพิเศษเห็น ให้ใส่:
+        // กำหนดรายการสิทธิ์ใหม่ทั้งหมดสำหรับห้องนี้
+        const overwrites = [
+          {
+            id: interaction.guild.id, // @everyone (ทุกคน)
+            deny: ['ViewChannel'],    // บังคับซ่อน
+          },
+          {
+            id: client.user.id,       // บอท (ห้ามซ่อนเด็ดขาด)
+            allow: ['ViewChannel', 'Connect', 'ManageChannels', 'MoveMembers'],
+          },
+          {
+            id: data.owner,           // เจ้าของห้อง (ต้องเห็น)
+            allow: ['ViewChannel', 'Connect'],
+          }
+        ];
+  
+        // ถ้ามี "ยศสูง" หรือ allowRoleId ให้เพิ่มเข้าไปในรายการอนุญาตให้มองเห็น
         if (allowRoleId) {
-            await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true }).catch(console.error);
+          overwrites.push({
+            id: allowRoleId,
+            allow: ['ViewChannel'], // ให้ยศสูงมองเห็นได้
+          });
         }
-        return interaction.editReply({ content: "🙈 ซ่อนห้องเรียบร้อยแล้ว" });
+        // นำค่าทั้งหมดไปสั่งตั้งค่าห้อง
+        await channel.permissionOverwrites.set(overwrites).catch(console.error);
+        return interaction.editReply({ content: "🙈 ซ่อนห้องจากคนทั่วไปแล้ว (ยศสูงยังคงมองเห็น)" });
       }
 
       if (interaction.customId === "show") {
