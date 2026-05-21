@@ -291,9 +291,12 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         const limit = parseInt(limitInput); 
         if (isNaN(limit) || limit < 0 || limit > 99) return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true }); 
         
-        // แก้ไข: ใช้ค่าที่ใส่ไปตรงๆ โดยไม่บวกเพิ่ม (รวมเจ้าของแล้ว)
-        await channel.setUserLimit(limit).catch(() => {}); 
-        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** (รวมเจ้าของ) เรียบร้อยแล้ว`, ephemeral: true }); 
+        // แก้ไข: ถ้าใส่ 1 ให้สั่งจำกัด 0 (เพราะ Discord นับคนอื่น) 
+        // ถ้าใส่ 2 ให้สั่งจำกัด 1
+        const finalLimit = limit === 0 ? 0 : limit - 1;
+        
+        await channel.setUserLimit(finalLimit).catch(() => {}); 
+        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนรวมเจ้าของไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** เรียบร้อยแล้ว`, ephemeral: true }); 
       }
     }
 
