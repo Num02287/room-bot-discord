@@ -276,22 +276,21 @@ if (interaction.customId === "hide") {
       }
 
 if (interaction.customId === "show") {
-    // 1. ให้ทุกคนมองเห็นได้
+    // 1. แค่เปิดการมองเห็นให้ทุกคน โดยไม่แตะต้องสิทธิ์ Connect ของคนอื่นที่เคยได้รับอนุญาตเป็นรายบุคคล
     await channel.permissionOverwrites.edit(interaction.guild.id, { 
-        ViewChannel: true,
-        Connect: false // ย้ำว่าคนทั่วไปเข้าไม่ได้
+        ViewChannel: true 
     }).catch(console.error);
 
-    // 2. เจ้าของต้องเข้าได้เสมอ
-    await channel.permissionOverwrites.edit(data.owner, { 
-        Connect: true 
+    // 2. ตั้งค่า Connect ให้คนทั่วไปเข้าไม่ได้
+    await channel.permissionOverwrites.edit(interaction.guild.id, { 
+        Connect: false 
     }).catch(console.error);
 
-    // 3. ยศพิเศษ (ถ้ามี) ให้เข้าได้
+    // 3. ยืนยันสิทธิ์ให้เจ้าของและยศพิเศษเข้าได้เสมอ
+    await channel.permissionOverwrites.edit(data.owner, { Connect: true }).catch(console.error);
+    
     if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, { 
-            Connect: true 
-        }).catch(console.error);
+        await channel.permissionOverwrites.edit(allowRoleId, { Connect: true }).catch(console.error);
     }
 
     return interaction.editReply({ 
