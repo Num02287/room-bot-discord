@@ -275,24 +275,29 @@ if (interaction.customId === "hide") {
         });
       }
 
-      if (interaction.customId === "show") {
-        // อัปเดตเฉพาะสิทธิ์การมองเห็น (ViewChannel) ให้เป็น true
-        // การไม่ระบุ Connect ในนี้ จะทำให้สิทธิ์ Connect เดิมที่มีอยู่ยังคงเดิมไม่เปลี่ยนแปลง
-        await channel.permissionOverwrites.edit(interaction.guild.id, { 
-            ViewChannel: true 
-        }).catch(console.error);
+if (interaction.customId === "show") {
+    // 1. ให้ทุกคนมองเห็นได้
+    await channel.permissionOverwrites.edit(interaction.guild.id, { 
+        ViewChannel: true,
+        Connect: false // ย้ำว่าคนทั่วไปเข้าไม่ได้
+    }).catch(console.error);
 
-        // หากมียศพิเศษ (allowRoleId) ให้เปิดการมองเห็นด้วยเช่นกัน
-        if (allowRoleId) {
-            await channel.permissionOverwrites.edit(allowRoleId, { 
-                ViewChannel: true 
-            }).catch(console.error);
-        }
+    // 2. เจ้าของต้องเข้าได้เสมอ
+    await channel.permissionOverwrites.edit(data.owner, { 
+        Connect: true 
+    }).catch(console.error);
 
-        return interaction.editReply({ 
-            content: "👁️ แสดงห้องเรียบร้อยแล้ว " 
-        });
-      }
+    // 3. ยศพิเศษ (ถ้ามี) ให้เข้าได้
+    if (allowRoleId) {
+        await channel.permissionOverwrites.edit(allowRoleId, { 
+            Connect: true 
+        }).catch(console.error);
+    }
+
+    return interaction.editReply({ 
+        content: "👁️ แสดงห้องเรียบร้อยแล้ว" 
+    });
+        }
     }
 
     // 3. จัดการเมนูเลือกสมาชิก (Select Menus)
