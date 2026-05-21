@@ -249,28 +249,32 @@ if (interaction.customId === "unlock") {
     return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (คนอื่นเข้าได้)" });
 }
 
-// 3. ปุ่ม Show (แสดงห้อง - แก้ไขเฉพาะจุดนี้)
+// 3. ปุ่ม Show (แสดงห้อง - ซิงค์ตามสถานะการล็อกที่เจ้าของตั้งไว้)
 if (interaction.customId === "show") {
-    // 1. ดึงสิทธิ์ปัจจุบันของ @everyone ออกมา
+    // 1. ดึงสิทธิ์ปัจจุบันของ @everyone
     const everyoneRole = interaction.guild.id;
     const currentPerms = channel.permissionOverwrites.resolve(everyoneRole);
+    
+    // 2. เช็คว่าปัจจุบันห้องถูกล็อกอยู่หรือไม่ (ดูว่ามีการ Deny Connect หรือไม่)
+    const isLocked = currentPerms ? currentPerms.deny.has("Connect") : false;
 
-    // 2. ปรับแค่ ViewChannel: true (แสดงห้อง) โดย "ไม่แตะต้อง" สิทธิ์ Connect เดิม
-    // เราจะใช้การคงค่าเดิม หรือถ้าอยากให้ชัวร์ ให้เช็คก่อนว่าล็อกอยู่ไหม
-    const isLocked = currentPerms?.deny.has("Connect");
-
+    // 3. แก้ไขเฉพาะการมองเห็น (ViewChannel) โดยคงค่า Connect เดิมเอาไว้
+    // เราใช้ { Connect: isLocked ? false : true } เพื่อย้ำสถานะเดิมที่เจ้าของตั้งไว้
     await channel.permissionOverwrites.edit(everyoneRole, { 
         ViewChannel: true,
-        Connect: isLocked ? false : true // ถ้าล็อกอยู่ให้คงสถานะล็อกไว้, ถ้าเปิดอยู่ให้คงเปิดไว้
-    });
+        Connect: isLocked ? false : true 
+    }).catch(() => {});
 
-    // 3. (Optional) เพิ่มบรรทัดนี้ถ้ามียศพิเศษที่ต้องเข้าได้เสมอ
+    // 4. (ถ้ามียศพิเศษ) ให้ยศพิเศษยังเข้าได้เสมอไม่ว่าห้องจะล็อกหรือไม่
     if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true });
+        await channel.permissionOverwrites.edit(allowRoleId, { 
+            ViewChannel: true, 
+            Connect: true 
+        }).catch(() => {});
     }
 
     return interaction.editReply({ 
-        content: `👁️ แสดงห้องแล้ว : **${isLocked ? "ล็อกอยู่" : ""}**` 
+        content: `👁️ แสดงห้องแล้ว ( ${isLocked ? "🔒 " : "🔓 "})` 
     });
 }
     }
