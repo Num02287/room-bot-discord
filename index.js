@@ -286,14 +286,14 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
         await channel.setName(`${name}`).catch(() => {});
         return interaction.reply({ content: `✏️ เปลี่ยนชื่อห้องเป็น **${name}** เรียบร้อยแล้ว`, ephemeral: true });
       }
-      if (interaction.customId === "limit_room") {
-        const limitInput = interaction.fields.getTextInputValue("limit_input");
-        const limit = parseInt(limitInput);
-        if (isNaN(limit) || limit < 0 || limit > 99) {
-          return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true });
-        }
-        await channel.setUserLimit(limit).catch(() => {});
-        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit " คน"}** เรียบร้อยแล้ว`, ephemeral: true });
+      if (interaction.customId === "limit_room") { 
+        const limitInput = interaction.fields.getTextInputValue("limit_input"); 
+        const limit = parseInt(limitInput); 
+        if (isNaN(limit) || limit < 0 || limit > 99) return interaction.reply({ content: "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)", ephemeral: true }); 
+        
+        // แก้ไข: ใช้ค่าที่ใส่ไปตรงๆ โดยไม่บวกเพิ่ม (รวมเจ้าของแล้ว)
+        await channel.setUserLimit(limit).catch(() => {}); 
+        return interaction.reply({ content: `🎯 ตั้งจำกัดจำนวนคนไว้ที่ **${limit === 0 ? "ไม่จำกัด" : limit + " คน"}** (รวมเจ้าของ) เรียบร้อยแล้ว`, ephemeral: true }); 
       }
     }
 
