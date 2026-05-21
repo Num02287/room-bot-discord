@@ -70,7 +70,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         {
           id: guildId, 
           allow: ["ViewChannel"], 
-          deny: ["Connect"],      
+          deny: ["Connect"],     
         },
         {
           id: ownerId, 
@@ -102,16 +102,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     }
 
     // --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
-    if (oldState.channelId && tempChannels.has(oldState.channelId)) {
-      const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
-      if (!channel) {
-        tempChannels.delete(oldState.channelId);
-        return;
-      }
-
-      const data = tempChannels.get(oldState.channelId);
-
-// --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
     if (oldState.channelId && tempChannels.has(oldState.channelId)) {
       const channel = await oldState.guild.channels.fetch(oldState.channelId).catch(() => null);
 
