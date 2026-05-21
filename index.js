@@ -226,7 +226,6 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
           await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
           return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
         }
-        return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
       }
       
 if (interaction.customId === "hide") {
