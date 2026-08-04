@@ -73,15 +73,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           deny: ["Connect"],     
         },
         {
-{
-  id: ownerId,
-  allow: [
-    "ViewChannel",
-    "Connect",
-    "ManageChannels",
-    "MoveMembers"
-  ],
-},
+          id: ownerId, 
+          allow: ["ViewChannel", "Connect"], 
+        },
         {
           id: client.user.id, 
           allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"], 
@@ -220,31 +214,11 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       // กลุ่มคำสั่งแก้ไข Permissions ของห้อง
       await interaction.deferReply({ ephemeral: true });
 
-if (interaction.customId === "lock") {
-    // ทุกคนเข้าไม่ได้
-    await channel.permissionOverwrites.edit(interaction.guild.id, {
-        ViewChannel: true,
-        Connect: false
-    }).catch(() => {});
-
-    // เจ้าของห้องเข้าได้
-    await channel.permissionOverwrites.edit(data.owner, {
-        ViewChannel: true,
-        Connect: true
-    }).catch(() => {});
-
-    // ยศที่กำหนดเข้าได้
-    if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, {
-            ViewChannel: true,
-            Connect: true
-        }).catch(() => {});
-    }
-
-    return interaction.editReply({
-        content: "🔒 ล็อกห้องเรียบร้อยแล้ว"
-    });
-}
+      if (interaction.customId === "lock") {
+        await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false }).catch(() => {});
+        if (allowRoleId) await channel.permissionOverwrites.edit(allowRoleId, { Connect: false }).catch(() => {});
+        return interaction.editReply({ content: "🔒 ล็อกห้องเรียบร้อยแล้ว" });
+      }
 
       if (interaction.customId === "unlock") {
         await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
