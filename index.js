@@ -941,7 +941,7 @@ client.on(
             return interaction.editReply({
 
               content:
-                "👁️ แสดงห้องแล้ว"
+                "👁️ แสดงห้องแล้ว — 🔒 ห้องยังล็อกอยู่"
 
             });
 
@@ -986,7 +986,7 @@ client.on(
             return interaction.editReply({
 
               content:
-                "👁️ แสดงห้องแล้ว"
+                "👁️ แสดงห้องแล้ว — 🔓 ห้องยังไม่ล็อก"
 
             });
 
