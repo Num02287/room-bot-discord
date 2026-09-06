@@ -221,9 +221,9 @@ if (interaction.isChatInputCommand() && interaction.commandName === "room") {
       }
 
       if (interaction.customId === "unlock") {
-        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: false }).catch(() => {});
+        await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true, Connect: true }).catch(() => {});
         if (allowRoleId) {
-          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: false, Connect: true }).catch(() => {});
+          await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true, Connect: true }).catch(() => {});
           return interaction.editReply({ content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว" });
         }
       }
