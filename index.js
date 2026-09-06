@@ -66,11 +66,19 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       const guildId = newState.guild.id;
       const ownerId = newState.member.id;
 
-      const permissionOverwrites = [
-        {
-          id: guildId, 
-          allow: ["ViewChannel"], 
-          deny: ["Connect"],     
+const permissionOverwrites = [
+  {
+    id: guildId, 
+    allow: ["ViewChannel", "Connect"], 
+  },
+  {
+    id: ownerId, 
+    allow: ["ViewChannel", "Connect"], 
+  },
+  {
+    id: client.user.id, 
+    allow: ["ViewChannel", "Connect", "ManageChannels", "MoveMembers"], 
+  }     
         },
         {
           id: ownerId, 
