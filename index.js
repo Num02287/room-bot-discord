@@ -571,11 +571,6 @@ client.on(
                 }
               )
               .catch(() => {});
-
-            return interaction.editReply({
-              content:
-                "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
-            });
           }
 
           return interaction.editReply({
@@ -586,6 +581,17 @@ client.on(
 
         // =================================================
         // 🙈 HIDE
+        //
+        // สำคัญ:
+        // ใช้ edit() ไม่ใช้ set()
+        //
+        // ดังนั้น Permission ของ:
+        // 🧑‍🤝‍🧑 คนที่อนุญาต
+        // 🚫 คนที่บล็อก
+        // 👑 เจ้าของ
+        // 🔒/🔓 Connect
+        //
+        // จะไม่ถูกล้าง
         // =================================================
         if (
           interaction.customId === "hide"
@@ -618,58 +624,44 @@ client.on(
             "1501857544400932904",
             "1493650662624592032",
             "1492931723330064425",
-            "1492931725129683124"
+            "1502931725129683124"
 
           ];
 
-          const permissions = [
-
-            {
-              id: interaction.guild.id,
-              deny: [
-                "ViewChannel"
-              ]
-            },
-
-            {
-              id: client.user.id,
-              allow: [
-                "ViewChannel",
-                "Connect",
-                "ManageChannels",
-                "MoveMembers"
-              ]
-            },
-
-            {
-              id: data.owner,
-              allow: [
-                "ViewChannel",
-                "Connect"
-              ]
-            }
-
-          ];
-
-          // เพิ่มสิทธิ์ให้ยศใหญ่
-          bigRoleIds.forEach(
-            roleId => {
-
-              permissions.push({
-                id: roleId,
-                allow: [
-                  "ViewChannel"
-                ]
-              });
-
-            }
-          );
-
-          // เขียนทับ Permission ทั้งหมด
+          // =============================================
+          // ซ่อนจาก @everyone
+          // แก้เฉพาะ ViewChannel
+          // ไม่แตะ Connect
+          // =============================================
           await channel
             .permissionOverwrites
-            .set(permissions)
-            .catch(console.error);
+            .edit(
+              interaction.guild.id,
+              {
+                ViewChannel: false
+              }
+            )
+            .catch(() => {});
+
+          // =============================================
+          // ให้ยศใหญ่ยังมองเห็น
+          // แก้เฉพาะ ViewChannel
+          // ไม่แตะ Connect
+          // =============================================
+          for (
+            const roleId of bigRoleIds
+          ) {
+
+            await channel
+              .permissionOverwrites
+              .edit(
+                roleId,
+                {
+                  ViewChannel: true
+                }
+              )
+              .catch(() => {});
+          }
 
           return interaction.editReply({
             content:
@@ -730,17 +722,25 @@ client.on(
         // =================================================
         // 👁️ SHOW
         //
-        // สำคัญ:
-        // ไม่แตะ Connect
-        // ไม่สร้างค่า locked
-        // ไม่รีเซ็ต Permission
-        // ไม่เปลี่ยนสถานะ 🔒 / 🔓
+        // สำคัญมาก:
+        //
+        // ไม่ใช้ permissionOverwrites.set()
+        // ไม่สร้าง Permission ใหม่
+        // ไม่รีเซ็ต Connect
+        // ไม่รีเซ็ต Allow/Deny สมาชิก
+        //
+        // แก้เฉพาะ ViewChannel ของ @everyone
         // =================================================
         if (
           interaction.customId === "show"
         ) {
 
-          // แค่ทำให้ @everyone มองเห็นห้อง
+          // =============================================
+          // แสดงห้องให้ @everyone เห็น
+          //
+          // Connect ไม่ถูกแตะ
+          // ดังนั้น 🔒 / 🔓 เดิมยังคงอยู่
+          // =============================================
           await channel
             .permissionOverwrites
             .edit(
@@ -751,20 +751,12 @@ client.on(
             )
             .catch(() => {});
 
-          // ทำให้ยศพิเศษมองเห็นห้อง
-          // แต่ไม่แตะ Connect
-          if (allowRoleId) {
-
-            await channel
-              .permissionOverwrites
-              .edit(
-                allowRoleId,
-                {
-                  ViewChannel: true
-                }
-              )
-              .catch(() => {});
-          }
+          // =============================================
+          // ไม่แก้ Permission ของ allowRoleId
+          //
+          // เพราะต้องรักษาค่า Connect เดิม
+          // และรักษาสถานะ 🔒 / 🔓
+          // =============================================
 
           return interaction.editReply({
             content:
