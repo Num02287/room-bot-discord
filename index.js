@@ -206,14 +206,12 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // ===============================================
       const permissionOverwrites = [
 
-        // @everyone เข้าไม่ได้
+        // @everyone สามารถมองเห็นและเข้าห้องได้
         {
           id: guildId,
-          deny: [
-            PermissionFlagsBits.Connect
-          ],
           allow: [
-            PermissionFlagsBits.ViewChannel
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.Connect
           ]
         },
 
@@ -658,11 +656,11 @@ client.on("interactionCreate", async interaction => {
             category
           );
 
-        // @everyone ยังเข้าไม่ได้
+        // @everyone สามารถเข้าได้
         await channel.permissionOverwrites.edit(
           interaction.guild.id,
           {
-            Connect: false,
+            Connect: true,
             ViewChannel: true
           }
         ).catch(() => {});
@@ -800,7 +798,7 @@ client.on("interactionCreate", async interaction => {
           interaction.guild.id,
           {
             ViewChannel: true,
-            Connect: false
+            Connect: true
           }
         ).catch(() => {});
 
@@ -939,7 +937,7 @@ client.on("interactionCreate", async interaction => {
         return interaction.reply({
 
           content:
-            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้ว`,
+            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้วครับ`,
 
           ephemeral: true
 
