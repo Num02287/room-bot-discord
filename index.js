@@ -18,7 +18,10 @@ const {
 
 const express = require("express");
 
-// ===== Web Server สำหรับรันบน Cloud (เช่น Render) =====
+// =====================================================
+// WEB SERVER
+// =====================================================
+
 const app = express();
 
 app.get("/", (req, res) => {
@@ -27,14 +30,23 @@ app.get("/", (req, res) => {
 
 app.listen(
   process.env.PORT || 3000,
-  () => console.log("Web Server is ready.")
+  () => {
+    console.log("🌐 Web Server is ready.");
+  }
 );
 
-// ===== ดึงข้อมูลจาก Environment Variables =====
+// =====================================================
+// ENV
+// =====================================================
+
 const token = process.env.TOKEN;
 const createChannelId = process.env.CREATE_CHANNEL_ID;
 const categoryId = process.env.CATEGORY_ID;
 const allowRoleId = process.env.ALLOW_ROLE_ID;
+
+// =====================================================
+// CLIENT
+// =====================================================
 
 const client = new Client({
   intents: [
@@ -44,26 +56,43 @@ const client = new Client({
   ]
 });
 
+// =====================================================
+// TEMP CHANNELS
+// =====================================================
+
 const tempChannels = new Map();
 
-// ===== Slash Commands (ระบบสร้างห้อง) =====
+// =====================================================
+// SLASH COMMAND
+// =====================================================
+
 const commands = [
   new SlashCommandBuilder()
     .setName("room")
     .setDescription("ระบบสร้างห้อง")
     .setDMPermission(false)
-].map(c => c.toJSON());
+].map(command => command.toJSON());
 
 const rest = new REST({
   version: "10"
 }).setToken(token);
 
+// =====================================================
+// READY
+// =====================================================
+
 client.once("ready", async () => {
-  console.log(`✅ Login as: ${client.user.tag}`);
+
+  console.log(
+    `✅ Login as: ${client.user.tag}`
+  );
 
   try {
+
     await rest.put(
-      Routes.applicationCommands(client.user.id),
+      Routes.applicationCommands(
+        client.user.id
+      ),
       {
         body: commands
       }
@@ -72,123 +101,193 @@ client.once("ready", async () => {
     console.log(
       "🚀 รีเฟรชและติดตั้ง Slash Commands เรียบร้อยแล้ว!"
     );
-  } catch (err) {
-    console.error(err);
+
+  } catch (error) {
+
+    console.error(
+      "Slash Command Error:",
+      error
+    );
+
   }
+
 });
 
-// ===== ระบบสร้างห้องและลบห้องอัตโนมัติ =====
-client.on("voiceStateUpdate", async (oldState, newState) => {
-  try {
+// =====================================================
+// VOICE STATE
+// =====================================================
 
-    // --- 1. ขาเข้า: สมาชิกกดเข้าช่องสร้างห้องค้างไว้ ---
-    if (newState.channelId === createChannelId) {
+client.on(
+  "voiceStateUpdate",
+  async (oldState, newState) => {
 
-      const guildId = newState.guild.id;
-      const ownerId = newState.member.id;
+    try {
 
-      const permissionOverwrites = [
-        {
-          id: guildId,
-          allow: ["ViewChannel"],
-          deny: ["Connect"]
-        },
-        {
-          id: ownerId,
-          allow: [
-            "ViewChannel",
-            "Connect"
-          ]
-        },
-        {
-          id: client.user.id,
-          allow: [
-            "ViewChannel",
-            "Connect",
-            "ManageChannels",
-            "MoveMembers"
-          ]
-        }
-      ];
+      // =================================================
+      // สร้างห้องเมื่อเข้าห้องสร้าง
+      // =================================================
 
-      if (allowRoleId) {
-        permissionOverwrites.push({
-          id: allowRoleId,
-          allow: [
-            "ViewChannel",
-            "Connect"
-          ]
-        });
-      }
-
-      const channel =
-        await newState.guild.channels.create({
-          name: `ห้องส่วนตัวของ ${newState.member.user.username}`,
-          type: ChannelType.GuildVoice,
-          parent: categoryId,
-          permissionOverwrites: permissionOverwrites
-        });
-
-      await newState
-        .setChannel(channel)
-        .catch(() => {});
-
-      tempChannels.set(channel.id, {
-        owner: ownerId
-      });
-
-      return;
-    }
-
-    // --- 2. ขาออก: สมาชิกย้ายออกหรือกดตัดสายออกจากห้องชั่วคราว ---
-    if (
-      oldState.channelId &&
-      tempChannels.has(oldState.channelId)
-    ) {
-
-      const channel =
-        await oldState.guild.channels
-          .fetch(oldState.channelId)
-          .catch(() => null);
-
-      // ถ้าไม่มีคนอยู่ในห้องแล้ว ให้ลบห้องทิ้ง
       if (
-        !channel ||
-        channel.members.size === 0
+        newState.channelId ===
+        createChannelId
       ) {
 
-        if (channel) {
-          await channel
-            .delete()
-            .catch(() => {});
+        const guildId =
+          newState.guild.id;
+
+        const ownerId =
+          newState.member.id;
+
+        const permissionOverwrites = [
+
+          // @everyone
+          {
+            id: guildId,
+
+            allow: [
+              "ViewChannel"
+            ],
+
+            deny: [
+              "Connect"
+            ]
+          },
+
+          // OWNER
+          {
+            id: ownerId,
+
+            allow: [
+              "ViewChannel",
+              "Connect"
+            ]
+          },
+
+          // BOT
+          {
+            id: client.user.id,
+
+            allow: [
+              "ViewChannel",
+              "Connect",
+              "ManageChannels",
+              "MoveMembers"
+            ]
+          }
+
+        ];
+
+        // ยศที่ได้รับอนุญาต
+        if (allowRoleId) {
+
+          permissionOverwrites.push({
+
+            id: allowRoleId,
+
+            allow: [
+              "ViewChannel",
+              "Connect"
+            ]
+
+          });
+
         }
 
-        tempChannels.delete(
-          oldState.channelId
+        const channel =
+          await newState.guild.channels.create({
+
+            name:
+              `ห้องส่วนตัวของ ${newState.member.user.username}`,
+
+            type:
+              ChannelType.GuildVoice,
+
+            parent:
+              categoryId,
+
+            permissionOverwrites
+
+          });
+
+        await newState
+          .setChannel(channel)
+          .catch(() => {});
+
+        tempChannels.set(
+          channel.id,
+          {
+            owner: ownerId
+          }
         );
 
         return;
       }
+
+      // =================================================
+      // ลบห้องเมื่อไม่มีสมาชิก
+      // =================================================
+
+      if (
+        oldState.channelId &&
+        tempChannels.has(
+          oldState.channelId
+        )
+      ) {
+
+        const channel =
+          await oldState.guild.channels
+            .fetch(
+              oldState.channelId
+            )
+            .catch(() => null);
+
+        if (
+          !channel ||
+          channel.members.size === 0
+        ) {
+
+          if (channel) {
+
+            await channel
+              .delete()
+              .catch(() => {});
+
+          }
+
+          tempChannels.delete(
+            oldState.channelId
+          );
+
+        }
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "voiceStateUpdate Error:",
+        error
+      );
+
     }
 
-  } catch (error) {
-    console.error(
-      "Error in voiceStateUpdate:",
-      error
-    );
   }
-});
+);
 
-// ===== ระบบจัดการปุ่มกด, เมนูเลือกสมาชิก และ โมดอล =====
+// =====================================================
+// INTERACTION
+// =====================================================
+
 client.on(
   "interactionCreate",
-  async (interaction) => {
+  async interaction => {
 
     try {
 
-      // =====================================================
-      // 1. เรียกแผงควบคุมด้วยคำสั่ง (/room)
-      // =====================================================
+      // =================================================
+      // /room
+      // =================================================
+
       if (
         interaction.isChatInputCommand() &&
         interaction.commandName === "room"
@@ -196,22 +295,31 @@ client.on(
 
         const embed =
           new EmbedBuilder()
+
             .setTitle(
               "🏠 ระบบสร้างห้องส่วนตัวประจำโซน"
             )
+
             .setDescription(
               "🔹 ระบบนี้ใช้สำหรับจัดการช่องเสียงส่วนตัว\n" +
               "🔹 สามารถสร้างและปรับแต่งห้องได้ตามต้องการ\n" +
-              "🔹 **หมายเหตุ :** สมาชิกที่มียศพิเศษจะสามารถเข้าห้องนี้ได้ทันที"
+              "🔹 สมาชิกที่มียศพิเศษสามารถเข้าห้องได้ตาม Permission"
             )
+
             .setImage(
               "https://i.ibb.co/Kjbw5BGb/image.png"
             )
+
             .setFooter({
               text:
                 "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ"
             })
+
             .setColor(0x2b2d31);
+
+        // =================================================
+        // ROW 1
+        // =================================================
 
         const row1 =
           new ActionRowBuilder()
@@ -251,7 +359,12 @@ client.on(
                 .setStyle(
                   ButtonStyle.Secondary
                 )
+
             );
+
+        // =================================================
+        // ROW 2
+        // =================================================
 
         const row2 =
           new ActionRowBuilder()
@@ -266,7 +379,7 @@ client.on(
 
               new ButtonBuilder()
                 .setCustomId("show")
-                .setEmoji("👁")
+                .setEmoji("👁️")
                 .setStyle(
                   ButtonStyle.Secondary
                 ),
@@ -291,31 +404,41 @@ client.on(
                 .setStyle(
                   ButtonStyle.Secondary
                 )
+
             );
 
-        // ส่ง Embed และปุ่มเข้าไปในแชทโดยตรง
         await interaction.channel.send({
-          embeds: [embed],
+
+          embeds: [
+            embed
+          ],
+
           components: [
             row1,
             row2
           ]
+
         });
 
-        // ตอบรับคำสั่งแบบเงียบๆ
         await interaction.reply({
+
           content:
             "กำลังสร้างแผงควบคุม...",
+
           ephemeral: true
+
         });
 
         return interaction.deleteReply();
       }
 
-      // =====================================================
-      // 2. จัดการปุ่มกดต่าง ๆ
-      // =====================================================
-      if (interaction.isButton()) {
+      // =================================================
+      // BUTTON
+      // =================================================
+
+      if (
+        interaction.isButton()
+      ) {
 
         const member =
           interaction.member;
@@ -324,29 +447,43 @@ client.on(
           member.voice.channel;
 
         if (!channel) {
+
           return interaction.reply({
+
             content:
               "❌ คุณต้องอยู่ในห้องเสียงก่อนครับ",
+
             ephemeral: true
+
           });
+
         }
 
         const data =
-          tempChannels.get(channel.id);
+          tempChannels.get(
+            channel.id
+          );
 
         // =================================================
-        // 👑 OWNER
+        // OWNER
         // =================================================
+
         if (
-          interaction.customId === "owner"
+          interaction.customId ===
+          "owner"
         ) {
 
           if (!data) {
+
             return interaction.reply({
+
               content:
                 "❌ ห้องนี้ไม่ได้อยู่ในระบบห้องชั่วคราว",
+
               ephemeral: true
+
             });
+
           }
 
           const ownerMember =
@@ -355,43 +492,65 @@ client.on(
             );
 
           return interaction.reply({
+
             embeds: [
+
               new EmbedBuilder()
-                .setTitle("👑 เจ้าของห้อง")
+
+                .setTitle(
+                  "👑 เจ้าของห้อง"
+                )
+
                 .setDescription(
                   `เจ้าของห้องปัจจุบันคือ: <@${data.owner}>`
                 )
-                .setColor(0xFFD700)
+
+                .setColor(
+                  0xFFD700
+                )
+
                 .setThumbnail(
                   ownerMember
                     ? ownerMember.user.displayAvatarURL()
                     : null
                 )
+
             ],
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // ตรวจสอบเจ้าของ
+        // CHECK OWNER
         // =================================================
+
         if (
           !data ||
-          data.owner !== member.id
+          data.owner !==
+          member.id
         ) {
 
           return interaction.reply({
+
             content:
               "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ ไม่สามารถสั่งการได้",
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // ✏️ เปลี่ยนชื่อ
+        // ✏️ NAME
         // =================================================
+
         if (
-          interaction.customId === "name"
+          interaction.customId ===
+          "name"
         ) {
 
           const modal =
@@ -417,20 +576,25 @@ client.on(
               .setRequired(true);
 
           modal.addComponents(
+
             new ActionRowBuilder()
               .addComponents(input)
+
           );
 
           return interaction.showModal(
             modal
           );
+
         }
 
         // =================================================
-        // 🎯 จำกัดจำนวนคน
+        // 🎯 LIMIT
         // =================================================
+
         if (
-          interaction.customId === "limit"
+          interaction.customId ===
+          "limit"
         ) {
 
           const modal =
@@ -456,18 +620,22 @@ client.on(
               .setRequired(true);
 
           modal.addComponents(
+
             new ActionRowBuilder()
               .addComponents(input)
+
           );
 
           return interaction.showModal(
             modal
           );
+
         }
 
         // =================================================
-        // 👥 ALLOW / DENY / TRANSFER
+        // ALLOW / DENY / TRANSFER
         // =================================================
+
         if (
           [
             "allow",
@@ -488,19 +656,23 @@ client.on(
               );
 
           return interaction.reply({
+
             content:
               "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่างนี้ครับ",
+
             components: [
+
               new ActionRowBuilder()
                 .addComponents(menu)
+
             ],
+
             ephemeral: true
+
           });
+
         }
 
-        // =================================================
-        // Permission
-        // =================================================
         await interaction.deferReply({
           ephemeral: true
         });
@@ -508,8 +680,10 @@ client.on(
         // =================================================
         // 🔒 LOCK
         // =================================================
+
         if (
-          interaction.customId === "lock"
+          interaction.customId ===
+          "lock"
         ) {
 
           await channel
@@ -533,19 +707,25 @@ client.on(
                 }
               )
               .catch(() => {});
+
           }
 
           return interaction.editReply({
+
             content:
               "🔒 ล็อกห้องเรียบร้อยแล้ว"
+
           });
+
         }
 
         // =================================================
         // 🔓 UNLOCK
         // =================================================
+
         if (
-          interaction.customId === "unlock"
+          interaction.customId ===
+          "unlock"
         ) {
 
           await channel
@@ -571,33 +751,33 @@ client.on(
                 }
               )
               .catch(() => {});
+
           }
 
           return interaction.editReply({
+
             content:
               "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
+
           });
+
         }
 
         // =================================================
         // 🙈 HIDE
         //
-        // สำคัญ:
-        // ใช้ edit() ไม่ใช้ set()
+        // ซ่อนห้อง
         //
-        // ดังนั้น Permission ของ:
-        // 🧑‍🤝‍🧑 คนที่อนุญาต
-        // 🚫 คนที่บล็อก
-        // 👑 เจ้าของ
-        // 🔒/🔓 Connect
-        //
-        // จะไม่ถูกล้าง
+        // แก้เฉพาะ ViewChannel
+        // ไม่แตะ Connect
+        // ไม่แตะสมาชิก
         // =================================================
+
         if (
-          interaction.customId === "hide"
+          interaction.customId ===
+          "hide"
         ) {
 
-          // รายชื่อ ID ยศใหญ่ที่ต้องการให้มองเห็นห้อง
           const bigRoleIds = [
 
             "1500549655107469535",
@@ -624,15 +804,15 @@ client.on(
             "1501857544400932904",
             "1493650662624592032",
             "1492931723330064425",
-            "1502931725129683124"
+            "1492931725129683124"
 
           ];
 
-          // =============================================
-          // ซ่อนจาก @everyone
+          // ---------------------------------------------
+          // ซ่อน @everyone
           // แก้เฉพาะ ViewChannel
-          // ไม่แตะ Connect
-          // =============================================
+          // ---------------------------------------------
+
           await channel
             .permissionOverwrites
             .edit(
@@ -643,11 +823,11 @@ client.on(
             )
             .catch(() => {});
 
-          // =============================================
-          // ให้ยศใหญ่ยังมองเห็น
+          // ---------------------------------------------
+          // ยศใหญ่ยังมองเห็น
           // แก้เฉพาะ ViewChannel
-          // ไม่แตะ Connect
-          // =============================================
+          // ---------------------------------------------
+
           for (
             const roleId of bigRoleIds
           ) {
@@ -661,86 +841,42 @@ client.on(
                 }
               )
               .catch(() => {});
+
           }
 
           return interaction.editReply({
+
             content:
-              "🙈 ซ่อนเรียบร้อยแล้ว"
+              "🙈 ซ่อนห้องเรียบร้อยแล้ว"
+
           });
-        }
 
-        // =================================================
-        // 🔒 LOCK
-        // =================================================
-        if (
-          interaction.customId === "lock"
-        ) {
-
-          if (allowRoleId) {
-
-            await channel
-              .permissionOverwrites
-              .edit(
-                allowRoleId,
-                {
-                  Connect: false
-                }
-              );
-          }
-
-          return interaction.editReply({
-            content:
-              "🔒 ล็อกห้องเรียบร้อยแล้ว (เฉพาะคนมียศถึงจะเข้าได้)"
-          });
-        }
-
-        // =================================================
-        // 🔓 UNLOCK
-        // =================================================
-        if (
-          interaction.customId === "unlock"
-        ) {
-
-          if (allowRoleId) {
-
-            await channel
-              .permissionOverwrites
-              .edit(
-                allowRoleId,
-                {
-                  Connect: true
-                }
-              );
-          }
-
-          return interaction.editReply({
-            content:
-              "🔓 ปลดล็อกห้องเรียบร้อยแล้ว (คนที่มียศสามารถเข้าได้)"
-          });
         }
 
         // =================================================
         // 👁️ SHOW
         //
-        // สำคัญมาก:
+        // ⭐ สำคัญที่สุด ⭐
         //
-        // ไม่ใช้ permissionOverwrites.set()
-        // ไม่สร้าง Permission ใหม่
-        // ไม่รีเซ็ต Connect
-        // ไม่รีเซ็ต Allow/Deny สมาชิก
+        // แสดงห้องอย่างเดียว
         //
-        // แก้เฉพาะ ViewChannel ของ @everyone
+        // ไม่รีค่า:
+        // 🔒 Connect
+        // 🔓 Connect
+        // 🧑‍🤝‍🧑 สมาชิก Allow
+        // 🚫 สมาชิก Deny
+        // 👑 Owner
+        // 🎯 Limit
+        // ยศต่าง ๆ
+        //
+        // แก้เพียง @everyone -> ViewChannel
         // =================================================
+
         if (
-          interaction.customId === "show"
+          interaction.customId ===
+          "show"
         ) {
 
-          // =============================================
-          // แสดงห้องให้ @everyone เห็น
-          //
-          // Connect ไม่ถูกแตะ
-          // ดังนั้น 🔒 / 🔓 เดิมยังคงอยู่
-          // =============================================
           await channel
             .permissionOverwrites
             .edit(
@@ -751,23 +887,21 @@ client.on(
             )
             .catch(() => {});
 
-          // =============================================
-          // ไม่แก้ Permission ของ allowRoleId
-          //
-          // เพราะต้องรักษาค่า Connect เดิม
-          // และรักษาสถานะ 🔒 / 🔓
-          // =============================================
-
           return interaction.editReply({
+
             content:
               "👁️ แสดงห้องเรียบร้อยแล้ว"
+
           });
+
         }
+
       }
 
-      // =====================================================
-      // 3. จัดการเมนูเลือกสมาชิก
-      // =====================================================
+      // =================================================
+      // USER SELECT MENU
+      // =================================================
+
       if (
         interaction.isUserSelectMenu()
       ) {
@@ -784,22 +918,27 @@ client.on(
           !channel ||
           !data ||
           data.owner !==
-            interaction.member.id
+          interaction.member.id
         ) {
 
           return interaction.reply({
+
             content:
               "❌ คุณต้องอยู่ในห้องที่คุณเป็นเจ้าของเท่านั้น",
+
             ephemeral: true
+
           });
+
         }
 
         const targetId =
           interaction.values[0];
 
         // =================================================
-        // ALLOW
+        // 🧑‍🤝‍🧑 ALLOW
         // =================================================
+
         if (
           interaction.customId ===
           "select_allow"
@@ -817,15 +956,20 @@ client.on(
             .catch(() => {});
 
           return interaction.reply({
+
             content:
               `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้วครับ`,
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // DENY
+        // 🚫 DENY
         // =================================================
+
         if (
           interaction.customId ===
           "select_deny"
@@ -851,18 +995,24 @@ client.on(
             await targetMember.voice
               .disconnect()
               .catch(() => {});
+
           }
 
           return interaction.reply({
+
             content:
               `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้วครับ`,
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // TRANSFER
+        // 🔁 TRANSFER
         // =================================================
+
         if (
           interaction.customId ===
           "select_transfer"
@@ -883,6 +1033,7 @@ client.on(
                 `📍・ห้องส่วนตัวของ ${targetUser.username}`
               )
               .catch(() => {});
+
           }
 
           await channel
@@ -897,16 +1048,22 @@ client.on(
             .catch(() => {});
 
           return interaction.reply({
+
             content:
               `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้วครับ`,
+
             ephemeral: true
+
           });
+
         }
+
       }
 
-      // =====================================================
-      // 4. Modal Submit
-      // =====================================================
+      // =================================================
+      // MODAL
+      // =================================================
+
       if (
         interaction.isModalSubmit()
       ) {
@@ -923,19 +1080,24 @@ client.on(
           !channel ||
           !data ||
           data.owner !==
-            interaction.member.id
+          interaction.member.id
         ) {
 
           return interaction.reply({
+
             content:
               "❌ คุณต้องอยู่ในห้องที่คุณเป็นเจ้าของเท่านั้น",
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // RENAME
+        // ✏️ RENAME
         // =================================================
+
         if (
           interaction.customId ===
           "rename_room"
@@ -948,19 +1110,24 @@ client.on(
               );
 
           await channel
-            .setName(`${name}`)
+            .setName(name)
             .catch(() => {});
 
           return interaction.reply({
+
             content:
               `✏️ เปลี่ยนชื่อห้องเป็น **${name}** เรียบร้อยแล้ว`,
+
             ephemeral: true
+
           });
+
         }
 
         // =================================================
-        // LIMIT
+        // 🎯 LIMIT
         // =================================================
+
         if (
           interaction.customId ===
           "limit_room"
@@ -982,40 +1149,44 @@ client.on(
           ) {
 
             return interaction.reply({
-              content:
-                "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)",
-              ephemeral: true
-            });
-          }
 
-          const finalLimit =
-            limit === 0
-              ? 0
-              : limit;
+              content:
+                "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง 0 - 99",
+
+              ephemeral: true
+
+            });
+
+          }
 
           await channel
             .setUserLimit(
-              finalLimit
+              limit
             )
             .catch(() => {});
 
           return interaction.reply({
+
             content:
-              `🎯 ตั้งจำกัดจำนวนคนรวมเจ้าของไว้ที่ **${
+              `🎯 ตั้งจำนวนคนเป็น **${
                 limit === 0
                   ? "ไม่จำกัด"
-                  : limit + " คน"
+                  : `${limit} คน`
               }** เรียบร้อยแล้ว`,
+
             ephemeral: true
+
           });
+
         }
+
       }
 
-    } catch (err) {
+    } catch (error) {
 
       console.error(
         "Interaction Error:",
-        err
+        error
       );
 
       if (
@@ -1023,11 +1194,14 @@ client.on(
         !interaction.deferred
       ) {
 
-        interaction
+        await interaction
           .reply({
+
             content:
               "❌ เกิดข้อผิดพลาดในการประมวลผลคำสั่ง",
+
             ephemeral: true
+
           })
           .catch(() => {});
 
@@ -1035,16 +1209,25 @@ client.on(
         interaction.deferred
       ) {
 
-        interaction
+        await interaction
           .editReply({
+
             content:
               "❌ เกิดข้อผิดพลาดในการประมวลผลคำสั่ง"
+
           })
           .catch(() => {});
+
       }
+
     }
+
   }
 );
+
+// =====================================================
+// LOGIN
+// =====================================================
 
 client.login(token);
 ```
