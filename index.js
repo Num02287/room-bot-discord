@@ -290,13 +290,37 @@ if (interaction.customId === "unlock") {
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
-    await channel.permissionOverwrites.edit(interaction.guild.id, 
-    {
-        ViewChannel: true
+
+    // @everyone: มองเห็นห้อง แต่ห้ามเข้า
+    await channel.permissionOverwrites.edit(interaction.guild.id, {
+        ViewChannel: true,
+        Connect: false
+    });
+
+    // ยศในหมวดหมู่: มองเห็น + เข้าห้องได้
+    if (allowRoleId) {
+        await channel.permissionOverwrites.edit(allowRoleId, {
+            ViewChannel: true,
+            Connect: true
+        });
+    }
+
+    // เจ้าของห้อง: มองเห็น + เข้าได้
+    await channel.permissionOverwrites.edit(data.owner, {
+        ViewChannel: true,
+        Connect: true
+    });
+
+    // บอท: มองเห็น + เข้าได้ + จัดการห้อง
+    await channel.permissionOverwrites.edit(client.user.id, {
+        ViewChannel: true,
+        Connect: true,
+        ManageChannels: true,
+        MoveMembers: true
     });
 
     return interaction.editReply({
-        content: "👁️ แสดงห้องเรียบร้อยแล้ว"});
+        content: "👁️ แสดงห้องแล้ว"});
     }
     }
 
