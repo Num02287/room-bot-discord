@@ -290,8 +290,11 @@ if (interaction.customId === "unlock") {
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
+
+    // แสดงห้องให้เห็น
     await channel.permissionOverwrites.edit(interaction.guild.id, {
-        ViewChannel: true
+        ViewChannel: true,
+        Connect: false
     });
 
     return interaction.editReply({
