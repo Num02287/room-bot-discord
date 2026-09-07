@@ -281,25 +281,24 @@ if (interaction.customId === "unlock") {
 
 
 // ======================================================
-// 🙈 HIDE
-// ก่อนซ่อน → บันทึก Permission เดิมเอาไว้
+// 🙈 HIDE ROOM
+// ซ่อนห้องจาก @everyone
+// ยศใหญ่ยังมองเห็น
+// เจ้าของยังมองเห็น
+// Bot ยังมองเห็น
 // ======================================================
 if (interaction.customId === "hide") {
 
-    // ป้องกันการบันทึกซ้ำ
+    // บันทึก Permission เดิมไว้ก่อนซ่อน
     if (!data.savedPermissions) {
-
-        data.savedPermissions = channel.permissionOverwrites.cache.map(
-            overwrite => ({
-                id: overwrite.id,
-                type: overwrite.type,
-                allow: overwrite.allow.bitfield.toString(),
-                deny: overwrite.deny.bitfield.toString()
-            })
-        );
+        data.savedPermissions = channel.permissionOverwrites.cache.map(overwrite => ({
+            id: overwrite.id,
+            type: overwrite.type,
+            allow: overwrite.allow.bitfield.toString(),
+            deny: overwrite.deny.bitfield.toString()
+        }));
     }
 
-    // รายชื่อยศใหญ่ที่ยังสามารถมองเห็นห้องได้
     const bigRoleIds = [
         "1500549655107469535",
         "1502362111345426432",
@@ -328,49 +327,62 @@ if (interaction.customId === "hide") {
         "1492931725129683124"
     ];
 
-    // ซ่อนห้องจาก @everyone
-    await channel.permissionOverwrites.edit(
-        interaction.guild.id,
+    // สร้าง Permission ใหม่
+    const permissions = [
+        // @everyone = มองไม่เห็น
         {
-            ViewChannel: false
-        }
-    ).catch(() => {});
+            id: interaction.guild.id,
+            deny: ["ViewChannel", "Connect"]
+        },
 
-    // ยศใหญ่ยังมองเห็นห้อง
+        // Bot
+        {
+            id: client.user.id,
+            allow: [
+                "ViewChannel",
+                "Connect",
+                "ManageChannels",
+                "MoveMembers"
+            ]
+        },
+
+        // เจ้าของห้อง
+        {
+            id: data.owner,
+            allow: [
+                "ViewChannel",
+                "Connect"
+            ]
+        }
+    ];
+
+    // ยศใหญ่ = มองเห็น + เข้าได้
     for (const roleId of bigRoleIds) {
-        await channel.permissionOverwrites.edit(
-            roleId,
-            {
-                ViewChannel: true
-            }
-        ).catch(() => {});
+        permissions.push({
+            id: roleId,
+            allow: [
+                "ViewChannel",
+                "Connect"
+            ]
+        });
     }
 
-    // เจ้าของยังมองเห็น
-    await channel.permissionOverwrites.edit(
-        data.owner,
-        {
-            ViewChannel: true,
-            Connect: true
-        }
-    ).catch(() => {});
+    // ใช้ set เพื่อบังคับ Permission
+    try {
+        await channel.permissionOverwrites.set(permissions);
 
-    // Bot ยังมองเห็นและจัดการห้องได้
-    await channel.permissionOverwrites.edit(
-        client.user.id,
-        {
-            ViewChannel: true,
-            Connect: true,
-            ManageChannels: true,
-            MoveMembers: true
-        }
-    ).catch(() => {});
+        return interaction.editReply({
+            content: "🙈 ซ่อนห้องเรียบร้อยแล้ว"
+        });
 
-    return interaction.editReply({
-        content: "🙈 ซ่อนเรียบร้อยแล้ว"
-    });
+    } catch (error) {
+        console.error("Hide Room Error:", error);
+
+        return interaction.editReply({
+            content: "❌ ไม่สามารถซ่อนห้องได้ กรุณาตรวจสอบสิทธิ์ Manage Channels ของบอท"
+        });
+    }
 }
-
 
 // ======================================================
 // 👁️ SHOW
