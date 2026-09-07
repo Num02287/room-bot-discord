@@ -291,11 +291,29 @@ if (interaction.customId === "unlock") {
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
 
-    // แสดงห้องให้เห็น
+    // แสดงห้องให้ @everyone
     await channel.permissionOverwrites.edit(interaction.guild.id, {
-        ViewChannel: true,
-        Connect: false
+        ViewChannel: true
     });
+
+    // ตรวจสอบสถานะ Connect ของยศพิเศษ
+    if (allowRoleId) {
+        const roleOverwrite = channel.permissionOverwrites.cache.get(allowRoleId);
+
+        // ถ้ายศพิเศษเคย Unlock → ให้เข้าได้
+        if (roleOverwrite && roleOverwrite.allow.has("Connect")) {
+            await channel.permissionOverwrites.edit(allowRoleId, {
+                ViewChannel: true,
+                Connect: true
+            });
+        } else {
+            // ถ้าเคย Lock → ยังคงเข้าไม่ได้
+            await channel.permissionOverwrites.edit(allowRoleId, {
+                ViewChannel: true,
+                Connect: false
+            });
+        }
+    }
 
     return interaction.editReply({
         content: "👁️ แสดงห้องเรียบร้อยแล้ว"});
