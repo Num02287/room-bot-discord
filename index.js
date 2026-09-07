@@ -289,14 +289,15 @@ if (interaction.customId === "unlock") {
 }
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
+// 👁️ SHOW — แสดงห้อง โดยไม่เปลี่ยนสถานะล็อก
 if (interaction.customId === "show") {
-    // 👁️ แสดงห้องอย่างเดียว
-    // ไม่เปลี่ยนสถานะ Connect
+
+    // แสดงห้องให้ @everyone มองเห็น
     await channel.permissionOverwrites.edit(interaction.guild.id, {
         ViewChannel: true
     });
 
-    // ให้ยศพิเศษมองเห็นห้อง
+    // ถ้ามียศพิเศษ ให้มองเห็นห้องด้วย
     if (allowRoleId) {
         await channel.permissionOverwrites.edit(allowRoleId, {
             ViewChannel: true
