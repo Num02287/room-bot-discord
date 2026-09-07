@@ -290,30 +290,20 @@ if (interaction.customId === "unlock") {
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
-    // 👁️ แสดงห้อง และอนุญาตให้เข้าได้
-    await channel.permissionOverwrites.edit(interaction.guild.id, {
-        ViewChannel: true,
-        Connect: true
-    });
+    // ให้ทุกคนมองเห็นห้อง (ViewChannel: true)
+    await channel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
+    
+    // ตั้งค่า @everyone ให้เข้าไม่ได้แน่นอน
+    await channel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
 
-    // ให้ยศพิเศษมองเห็นและเข้าห้องได้
+    // ตั้งค่าให้ยศพิเศษมองเห็นห้อง
     if (allowRoleId) {
-        await channel.permissionOverwrites.edit(allowRoleId, {
-            ViewChannel: true,
-            Connect: true
-        });
+        await channel.permissionOverwrites.edit(allowRoleId, { ViewChannel: true });
     }
 
-    // ให้เจ้าของห้องมองเห็นและเข้าห้องได้
-    await channel.permissionOverwrites.edit(data.owner, {
-        ViewChannel: true,
-        Connect: true
-    });
-
-    return interaction.editReply({
-        content: "👁️ แสดงห้องเรียบร้อยแล้ว"
-    });
+    return interaction.editReply({ content: "👁️ แสดงห้องเรียบร้อยแล้ว" });
 }
+    }
 
     // 3. จัดการเมนูเลือกสมาชิก (Select Menus)
     if (interaction.isUserSelectMenu()) {
