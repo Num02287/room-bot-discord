@@ -827,66 +827,47 @@ client.on("interactionCreate", async interaction => {
 
       }
 
+// =====================================================
+// 🔓 UNLOCK — ปลดล็อกห้อง
+// =====================================================
+if (interaction.customId === "unlock") {
 
-      // =================================================
-      // 🔓 UNLOCK
-      // =================================================
+  // @everyone
+  // ให้มองเห็น + สามารถเข้าห้องได้
+  await channel.permissionOverwrites.edit(
+    interaction.guild.id,
+    {
+      ViewChannel: true,
+      Connect: true
+    }
+  );
 
-      if (
-        interaction.customId === "unlock"
-      ) {
+  // 👑 เจ้าของห้อง
+  await channel.permissionOverwrites.edit(
+    data.owner,
+    {
+      ViewChannel: true,
+      Connect: true,
+      ManageChannels: true,
+      MoveMembers: true
+    }
+  );
 
-        // ทุกคนเห็นและเข้าได้
-        await channel.permissionOverwrites.edit(
-
-          interaction.guild.id,
-
-          {
-            ViewChannel: true,
-            Connect: true
-          }
-
-        );
-
-
-        // เจ้าของ
-        await channel.permissionOverwrites.edit(
-
-          data.owner,
-
-          {
-            ViewChannel: true,
-            Connect: true
-          }
-
-        );
-
-
-        // ยศพิเศษ
-        if (allowRoleId) {
-
-          await channel.permissionOverwrites.edit(
-
-            allowRoleId,
-
-            {
-              ViewChannel: true,
-              Connect: true
-            }
-
-          );
-
-        }
-
-
-        return interaction.editReply({
-
-          content:
-            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
-
-        });
-
+  // ⭐ ยศพิเศษ
+  if (allowRoleId) {
+    await channel.permissionOverwrites.edit(
+      allowRoleId,
+      {
+        ViewChannel: true,
+        Connect: true
       }
+    );
+  }
+
+  return interaction.editReply({
+    content: "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
+  });
+}
 
 
       // =================================================
