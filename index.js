@@ -290,14 +290,9 @@ if (interaction.customId === "unlock") {
 
 // 3. ปุ่ม SHOW (แสดงห้อง)
 if (interaction.customId === "show") {
-
-    // แสดงห้องให้ @everyone มองเห็น
     await channel.permissionOverwrites.edit(interaction.guild.id, {
         ViewChannel: true
     });
-
-    // ไม่แก้ Connect
-    // ดังนั้นสถานะ Lock / Unlock ที่กดไว้ก่อนหน้า จะยังคงเดิม
 
     return interaction.editReply({
         content: "👁️ แสดงห้องเรียบร้อยแล้ว"});
