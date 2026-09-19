@@ -36,7 +36,20 @@ app.listen(process.env.PORT || 3000, () => {
 const token = process.env.TOKEN;
 const createChannelId = process.env.CREATE_CHANNEL_ID;
 const categoryId = process.env.CATEGORY_ID;
-const allowRoleId = process.env.ALLOW_ROLE_ID;
+
+// ======================================================
+// 🧑‍🤝‍🧑 ยศที่อนุญาต
+// ใส่หลาย ID ใน Render โดยคั่นด้วย , 
+//
+// ตัวอย่าง:
+// 123456789,987654321,555555555
+// ======================================================
+const allowRoleIds = process.env.ALLOW_ROLE_ID
+  ? process.env.ALLOW_ROLE_ID
+      .split(",")
+      .map(id => id.trim())
+      .filter(Boolean)
+  : [];
 
 // ======================================================
 // 🤖 Discord Client
@@ -126,10 +139,15 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       const permissionOverwrites = [
 
         // @everyone
+        // ❌ มองเห็นได้ แต่เข้าไม่ได้
         {
           id: guildId,
-          allow: ["ViewChannel"],
-          deny: ["Connect"]
+          allow: [
+            "ViewChannel"
+          ],
+          deny: [
+            "Connect"
+          ]
         },
 
         // 👤 เจ้าของห้อง
@@ -169,12 +187,13 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       }
 
       // ==================================================
-      // 🧑‍🤝‍🧑 ยศที่อนุญาตเพิ่มเติม
+      // 🧑‍🤝‍🧑 เพิ่มสิทธิ์ยศจาก ALLOW_ROLE_ID
+      // รองรับหลายยศ
       // ==================================================
-      if (allowRoleId) {
+      for (const roleId of allowRoleIds) {
 
         permissionOverwrites.push({
-          id: allowRoleId,
+          id: roleId,
           allow: [
             "ViewChannel",
             "Connect"
@@ -577,11 +596,14 @@ client.on("interactionCreate", async (interaction) => {
 
         ).catch(() => {});
 
-        if (allowRoleId) {
+        // ==================================================
+        // ล็อกยศที่กำหนดไว้ทั้งหมด
+        // ==================================================
+        for (const roleId of allowRoleIds) {
 
           await channel.permissionOverwrites.edit(
 
-            allowRoleId,
+            roleId,
 
             {
               ViewChannel: true,
@@ -616,11 +638,14 @@ client.on("interactionCreate", async (interaction) => {
 
         ).catch(() => {});
 
-        if (allowRoleId) {
+        // ==================================================
+        // ปลดล็อกยศที่กำหนดไว้ทั้งหมด
+        // ==================================================
+        for (const roleId of allowRoleIds) {
 
           await channel.permissionOverwrites.edit(
 
-            allowRoleId,
+            roleId,
 
             {
               ViewChannel: true,
@@ -641,13 +666,6 @@ client.on("interactionCreate", async (interaction) => {
 
       // ==================================================
       // 🙈 HIDE ROOM
-      //
-      // เหลือเฉพาะ:
-      // 👑 ยศใหญ่
-      // 👤 เจ้าของ
-      // 🤖 Bot
-      //
-      // @everyone = มองไม่เห็น
       // ==================================================
       if (interaction.customId === "hide") {
 
@@ -676,7 +694,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         // ==================================================
-        // Permission ใหม่ทั้งหมด
+        // Permission ใหม่
         // ==================================================
         const permissions = [
 
@@ -715,9 +733,27 @@ client.on("interactionCreate", async (interaction) => {
         ];
 
         // ==================================================
-        // 👑 ยศใหญ่เท่านั้น
+        // 👑 ยศใหญ่
         // ==================================================
         for (const roleId of bigRoleIds) {
+
+          permissions.push({
+
+            id: roleId,
+
+            allow: [
+              "ViewChannel",
+              "Connect"
+            ]
+
+          });
+
+        }
+
+        // ==================================================
+        // 🧑‍🤝‍🧑 ยศจาก ALLOW_ROLE_ID
+        // ==================================================
+        for (const roleId of allowRoleIds) {
 
           permissions.push({
 
