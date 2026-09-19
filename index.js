@@ -82,6 +82,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         "1493650662624592032",
         "1492931723330064425",
         "1493652498635034844",
+        "1497961308530802691",
       ];
 
       const permissionOverwrites = [
