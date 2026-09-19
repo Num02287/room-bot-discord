@@ -43,16 +43,15 @@ const token = process.env.TOKEN;
 const createChannelId = process.env.CREATE_CHANNEL_ID;
 const categoryId = process.env.CATEGORY_ID;
 
-// 💎 Role ID ของยศ 💎〘VIP〙ห้องส่วนตัว
-const allowRoleId = "1492931728682254546";
+// =====================================================
+// 👑 Role IDs
+// =====================================================
 
-// 👑 Role ID ของยศแอดมิน
+// 👑 แอดมิน
 const adminRoleId = "1492931726962331739";
 
-if (!token) {
-  console.error("❌ ไม่พบ TOKEN ใน Environment Variables");
-  process.exit(1);
-}
+// 💎 VIP ห้องส่วนตัว
+const allowRoleId = "1492931728682254546";
 
 // =====================================================
 // 🤖 Discord Client
@@ -67,7 +66,7 @@ const client = new Client({
 });
 
 // =====================================================
-// 💎 ยศใหญ่ที่สามารถเข้าห้องส่วนตัวได้
+// 💎 ยศใหญ่
 // =====================================================
 
 const bigRoleIds = [
@@ -81,13 +80,13 @@ const bigRoleIds = [
   "1501857544400932904",
   "1492931725129683124",
   "1493650662624592032",
-  "1492931713330064425",
+  "1492931723330064425",
   "1493652498635034844",
   "1497961308530802691",
 ];
 
 // =====================================================
-// 🏠 เก็บข้อมูลห้องส่วนตัว
+// 🏠 เก็บข้อมูลห้อง
 // =====================================================
 
 const tempChannels = new Map();
@@ -121,13 +120,13 @@ client.once("ready", async () => {
 });
 
 // =====================================================
-// 🎙️ สร้างห้องส่วนตัว
+// 🎙️ Voice State
 // =====================================================
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     // ===================================================
-    // 🏠 สร้างห้องเมื่อเข้าห้องสร้าง
+    // 🏠 สร้างห้องส่วนตัว
     // ===================================================
 
     if (
@@ -162,23 +161,20 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           ],
         },
 
-        // 💎 VIP
-        {
-          id: allowRoleId,
-          allow: ["ViewChannel", "Connect"],
-        },
-
-        // 👑 Admin
+        // 👑 แอดมิน
         {
           id: adminRoleId,
           allow: ["ViewChannel", "Connect"],
         },
+
+        // 💎 VIP ห้องส่วนตัว
+        {
+          id: allowRoleId,
+          allow: ["ViewChannel", "Connect"],
+        },
       ];
 
-      // =================================================
       // 💎 ยศใหญ่
-      // =================================================
-
       for (const roleId of bigRoleIds) {
         permissionOverwrites.push({
           id: roleId,
@@ -197,17 +193,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         permissionOverwrites,
       });
 
-      // =================================================
-      // 💾 บันทึกข้อมูล
-      // =================================================
-
       tempChannels.set(channel.id, {
         owner: member.id,
       });
-
-      // =================================================
-      // 🚶 ย้ายเจ้าของเข้าห้อง
-      // =================================================
 
       await member.voice.setChannel(channel);
 
@@ -217,7 +205,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     }
 
     // ===================================================
-    // 🗑️ ลบห้องเมื่อไม่มีคน
+    // 🗑️ ลบห้องเมื่อไม่มีสมาชิก
     // ===================================================
 
     if (
@@ -368,7 +356,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // =================================================
-      // ✏️ เปลี่ยนชื่อห้อง
+      // ✏️ เปลี่ยนชื่อ
       // =================================================
 
       if (interaction.customId === "room_name") {
@@ -392,6 +380,7 @@ client.on("interactionCreate", async (interaction) => {
 
       // =================================================
       // 🔒 ล็อก
+      // 👑 Admin + 💎 VIP ยังเข้าได้
       // =================================================
 
       if (interaction.customId === "room_lock") {
@@ -403,21 +392,19 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        // 💎 VIP ยังเห็นห้อง แต่เข้าไม่ได้ตอนล็อก
-        await channel.permissionOverwrites.edit(
-          allowRoleId,
-          {
-            ViewChannel: true,
-            Connect: false,
-          }
-        );
-
-        // 👑 Admin ยังเห็นห้อง แต่เข้าไม่ได้ตอนล็อก
         await channel.permissionOverwrites.edit(
           adminRoleId,
           {
             ViewChannel: true,
-            Connect: false,
+            Connect: true,
+          }
+        );
+
+        await channel.permissionOverwrites.edit(
+          allowRoleId,
+          {
+            ViewChannel: true,
+            Connect: true,
           }
         );
 
@@ -440,18 +427,16 @@ client.on("interactionCreate", async (interaction) => {
           }
         );
 
-        // 💎 VIP
         await channel.permissionOverwrites.edit(
-          allowRoleId,
+          adminRoleId,
           {
             ViewChannel: true,
             Connect: true,
           }
         );
 
-        // 👑 Admin
         await channel.permissionOverwrites.edit(
-          adminRoleId,
+          allowRoleId,
           {
             ViewChannel: true,
             Connect: true,
@@ -490,6 +475,7 @@ client.on("interactionCreate", async (interaction) => {
 
       // =================================================
       // 🙈 ซ่อนห้อง
+      // 👑 Admin + 💎 VIP ยังเข้าได้
       // =================================================
 
       if (interaction.customId === "room_hide") {
@@ -532,23 +518,20 @@ client.on("interactionCreate", async (interaction) => {
             allow: ["ViewChannel", "Connect"],
           },
 
+          // 👑 แอดมิน
+          {
+            id: adminRoleId,
+            allow: ["ViewChannel", "Connect"],
+          },
+
           // 💎 VIP
           {
             id: allowRoleId,
             allow: ["ViewChannel", "Connect"],
           },
-
-          // 👑 Admin
-          {
-            id: adminRoleId,
-            allow: ["ViewChannel", "Connect"],
-          },
         ];
 
-        // =================================================
         // 💎 ยศใหญ่
-        // =================================================
-
         for (const roleId of bigRoleIds) {
           permissions.push({
             id: roleId,
