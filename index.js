@@ -41,24 +41,11 @@ const categoryId = process.env.CATEGORY_ID;
 // 🧑‍🤝‍🧑 ยศที่อนุญาต
 // รองรับหลาย Role ID
 //
-// Render:
-// ALLOW_ROLE_ID=123456789,987654321
+// ตัวอย่างใน Render:
+// 123456789,987654321,555555555
 // ======================================================
 const allowRoleIds = process.env.ALLOW_ROLE_ID
   ? process.env.ALLOW_ROLE_ID
-      .split(",")
-      .map(id => id.trim())
-      .filter(Boolean)
-  : [];
-
-// ======================================================
-// 👑 ยศใหญ่จาก Render Dashboard
-//
-// Render:
-// BIG_ROLE_ID=123456789,987654321,555555555
-// ======================================================
-const bigRoleIds = process.env.BIG_ROLE_ID
-  ? process.env.BIG_ROLE_ID
       .split(",")
       .map(id => id.trim())
       .filter(Boolean)
@@ -79,6 +66,25 @@ const client = new Client({
 // 🏠 เก็บข้อมูลห้องชั่วคราว
 // ======================================================
 const tempChannels = new Map();
+
+// ======================================================
+// 👑 ยศใหญ่
+// ใช้ชุดเดียวกันทั้งระบบ
+// ======================================================
+const bigRoleIds = [
+  "1502362111345426432",
+  "1546873993334890577",
+  "1500549655107469535",
+  "1492931714887192739",
+  "1492931717437063342",
+  "1492931719832014978",
+  "1492931721384038480",
+  "1555519802486030346",
+  "1501857544400932904",
+  "1492931725129683124",
+  "1493650662624592032",
+  "1492931723330064425"
+];
 
 // ======================================================
 // 📌 Slash Command
@@ -107,14 +113,6 @@ client.once("ready", async () => {
     }`
   );
 
-  console.log(
-    `👑 Big Roles: ${
-      bigRoleIds.length > 0
-        ? bigRoleIds.join(", ")
-        : "ไม่มี"
-    }`
-  );
-
   try {
 
     await rest.put(
@@ -130,10 +128,7 @@ client.once("ready", async () => {
 
   } catch (err) {
 
-    console.error(
-      "❌ Slash Command Error:",
-      err
-    );
+    console.error(err);
 
   }
 
@@ -160,6 +155,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       const permissionOverwrites = [
 
         // @everyone
+        // ❌ เข้าไม่ได้
         {
           id: guildId,
 
@@ -197,7 +193,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       ];
 
       // ==================================================
-      // 👑 เพิ่มสิทธิ์ยศใหญ่จาก Render
+      // 👑 เพิ่มสิทธิ์ยศใหญ่
       // ==================================================
       for (const roleId of bigRoleIds) {
 
@@ -267,10 +263,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           ownerId
 
       });
-
-      console.log(
-        `🏠 สร้างห้อง ${channel.name} สำหรับ ${newState.member.user.tag}`
-      );
 
       return;
     }
@@ -719,7 +711,6 @@ client.on("interactionCreate", async (interaction) => {
 
       // ==================================================
       // 🔒 LOCK
-      // Big Roles ยังคงเข้าได้
       // ==================================================
       if (
         interaction.customId === "lock"
@@ -737,7 +728,7 @@ client.on("interactionCreate", async (interaction) => {
         ).catch(() => {});
 
         // ==================================================
-        // ล็อกยศปกติ
+        // ล็อกยศที่ตั้งไว้ทั้งหมด
         // ==================================================
         for (
           const roleId of allowRoleIds
@@ -750,26 +741,6 @@ client.on("interactionCreate", async (interaction) => {
             {
               ViewChannel: true,
               Connect: false
-            }
-
-          ).catch(() => {});
-
-        }
-
-        // ==================================================
-        // 👑 Big Roles ยังเข้าได้
-        // ==================================================
-        for (
-          const roleId of bigRoleIds
-        ) {
-
-          await channel.permissionOverwrites.edit(
-
-            roleId,
-
-            {
-              ViewChannel: true,
-              Connect: true
             }
 
           ).catch(() => {});
@@ -804,30 +775,10 @@ client.on("interactionCreate", async (interaction) => {
         ).catch(() => {});
 
         // ==================================================
-        // ปลดล็อกยศปกติ
+        // ปลดล็อกยศที่ตั้งไว้ทั้งหมด
         // ==================================================
         for (
           const roleId of allowRoleIds
-        ) {
-
-          await channel.permissionOverwrites.edit(
-
-            roleId,
-
-            {
-              ViewChannel: true,
-              Connect: true
-            }
-
-          ).catch(() => {});
-
-        }
-
-        // ==================================================
-        // 👑 Big Roles เข้าได้
-        // ==================================================
-        for (
-          const roleId of bigRoleIds
         ) {
 
           await channel.permissionOverwrites.edit(
@@ -854,7 +805,12 @@ client.on("interactionCreate", async (interaction) => {
 
       // ==================================================
       // 🙈 HIDE ROOM
-      // Big Roles ยังคงมองเห็นและเข้าได้
+      //
+      // เหลือเฉพาะ:
+      // 👤 เจ้าของห้อง
+      // 🤖 Bot
+      //
+      // ทุกยศอื่น ๆ มองไม่เห็น
       // ==================================================
       if (
         interaction.customId === "hide"
@@ -934,24 +890,11 @@ client.on("interactionCreate", async (interaction) => {
         ];
 
         // ==================================================
-        // 👑 Big Roles
+        // ❗ ไม่มี bigRoleIds
+        // ❗ ไม่มี allowRoleIds
+        //
+        // ดังนั้นยศทั้งหมดจะถูกซ่อน
         // ==================================================
-        for (
-          const roleId of bigRoleIds
-        ) {
-
-          permissions.push({
-
-            id: roleId,
-
-            allow: [
-              "ViewChannel",
-              "Connect"
-            ]
-
-          });
-
-        }
 
         try {
 
@@ -1377,22 +1320,4 @@ client.on("interactionCreate", async (interaction) => {
 // ======================================================
 // 🚀 Login
 // ======================================================
-if (!token) {
-
-  console.error(
-    "❌ ไม่พบ TOKEN ใน Render Environment Variables"
-  );
-
-} else {
-
-  client.login(token)
-    .catch(error => {
-
-      console.error(
-        "❌ Discord Login Error:",
-        error
-      );
-
-    });
-
-}
+client.login(token);
