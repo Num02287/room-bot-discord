@@ -1,12 +1,13 @@
 {
-  "name": "room-bot",
+  "name": "room-bot-discord",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node src/index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "express": "^4.19.2"
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
   }
 }
