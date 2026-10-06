@@ -1127,7 +1127,7 @@ client.on("interactionCreate", async (interaction) => {
 
           await channel
             .setName(
-              `📍・ห้องส่วนตัวของ ${targetUser.username}`
+              `ห้องส่วนตัวของ ${targetUser.username}`
             )
             .catch(() => {});
 
