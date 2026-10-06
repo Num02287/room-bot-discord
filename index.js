@@ -153,7 +153,8 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     // ==================================================
 
     if (
-      newState.channelId === createChannelId
+      newState.channelId === createChannelId &&
+      oldState.channelId !== createChannelId
     ) {
 
       const guildId =
@@ -161,6 +162,17 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
       const ownerId =
         newState.member.id;
+
+      // ==================================================
+      // 🏠 ชื่อห้องเริ่มต้น
+      // ==================================================
+
+      const roomName =
+        `ห้องส่วนตัวของ ${newState.member.user.username}`;
+
+      // ==================================================
+      // 🔐 Permission
+      // ==================================================
 
       const permissionOverwrites = [
 
@@ -205,7 +217,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // 👑 Big Roles
       // ==================================================
 
-      for (const roleId of bigRoleIds) {
+      for (
+        const roleId of bigRoleIds
+      ) {
 
         permissionOverwrites.push({
 
@@ -224,7 +238,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // 🧑‍🤝‍🧑 Allow Roles
       // ==================================================
 
-      for (const roleId of allowRoleIds) {
+      for (
+        const roleId of allowRoleIds
+      ) {
 
         permissionOverwrites.push({
 
@@ -247,7 +263,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         await newState.guild.channels.create({
 
           name:
-            `ห้องส่วนตัวของ ${newState.member.user.username}`,
+            roomName,
 
           type:
             ChannelType.GuildVoice,
@@ -268,14 +284,21 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         .catch(() => {});
 
       // ==================================================
-      // 💾 บันทึกข้อมูล
+      // 💾 บันทึกข้อมูลห้อง
       // ==================================================
 
       tempChannels.set(
         channel.id,
         {
-          owner: ownerId
+          owner: ownerId,
+
+          // ⭐ จำชื่อห้องตั้งแต่ตอนสร้าง
+          roomName: roomName
         }
+      );
+
+      console.log(
+        `🏠 Created Room: ${roomName}`
       );
 
       return;
@@ -310,6 +333,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
         tempChannels.delete(
           oldState.channelId
+        );
+
+        console.log(
+          `🗑️ Deleted Room: ${oldState.channelId}`
         );
 
       }
@@ -362,10 +389,8 @@ client.on("interactionCreate", async interaction => {
           )
 
           .setFooter({
-
             text:
               "📌 กดปุ่มด้านล่างเพื่อจัดการห้องของคุณ"
-
           })
 
           .setColor(0x2b2d31);
@@ -597,8 +622,13 @@ client.on("interactionCreate", async interaction => {
           new TextInputBuilder()
             .setCustomId("room_name")
             .setLabel("ชื่อห้องใหม่")
+            .setPlaceholder(
+              data.roomName ||
+              "กรอกชื่อห้องใหม่"
+            )
             .setStyle(TextInputStyle.Short)
-            .setRequired(true);
+            .setRequired(true)
+            .setMaxLength(100);
 
         modal.addComponents(
 
@@ -667,7 +697,9 @@ client.on("interactionCreate", async interaction => {
             )
             .setPlaceholder(
               "เลือกสมาชิกที่ต้องการ..."
-            );
+            )
+            .setMinValues(1)
+            .setMaxValues(1);
 
         return interaction.reply({
 
@@ -1076,40 +1108,30 @@ client.on("interactionCreate", async interaction => {
         interaction.customId === "select_transfer"
       ) {
 
-        // ==================================================
-        // 👤 จำเจ้าของเดิม
-        // ==================================================
-
         const oldOwnerId =
           data.owner;
-
-        // ==================================================
-        // 👑 เจ้าของใหม่
-        // ==================================================
 
         const newOwnerId =
           targetId;
 
-        // ==================================================
-        // 🧹 ลบ Permission ของเจ้าของเดิม
-        // ให้กลับไปเหมือนสมาชิกทั่วไป
-        // ==================================================
+        // ----------------------------------------------
+        // 🧹 ลบ Permission เจ้าของเดิม
+        // ----------------------------------------------
 
         await channel.permissionOverwrites
           .delete(oldOwnerId)
           .catch(() => {});
 
-        // ==================================================
+        // ----------------------------------------------
         // 👑 เปลี่ยนเจ้าของ
-        // ==================================================
+        // ----------------------------------------------
 
         data.owner =
           newOwnerId;
 
-        // ==================================================
+        // ----------------------------------------------
         // 👑 ให้สิทธิ์เจ้าของใหม่
-        // เหมือนตอนสร้างห้อง
-        // ==================================================
+        // ----------------------------------------------
 
         await channel.permissionOverwrites.edit(
 
@@ -1122,28 +1144,10 @@ client.on("interactionCreate", async interaction => {
 
         ).catch(() => {});
 
-        // ==================================================
-        // 🏠 เปลี่ยนชื่อห้อง
-        // ==================================================
-
-        const targetUser =
-          await client.users
-            .fetch(newOwnerId)
-            .catch(() => null);
-
-        if (targetUser) {
-
-          await channel
-            .setName(
-              `ห้องส่วนตัวของ ${targetUser.username}`
-            )
-            .catch(() => {});
-
-        }
-
-        // ==================================================
-        // ✅ แจ้งผล
-        // ==================================================
+        // ----------------------------------------------
+        // ❗ ไม่เปลี่ยนชื่อห้อง
+        // ใช้ชื่อเดิมที่ data.roomName
+        // ----------------------------------------------
 
         return interaction.reply({
 
@@ -1203,11 +1207,30 @@ client.on("interactionCreate", async interaction => {
           interaction.fields
             .getTextInputValue(
               "room_name"
-            );
+            )
+            .trim();
 
+        if (!name) {
+
+          return interaction.reply({
+
+            content:
+              "❌ กรุณาระบุชื่อห้อง",
+
+            ephemeral: true
+
+          });
+
+        }
+
+        // เปลี่ยนชื่อจริง
         await channel
           .setName(name)
           .catch(() => {});
+
+        // ⭐ จำชื่อใหม่ล่าสุด
+        data.roomName =
+          name;
 
         return interaction.reply({
 
@@ -1232,10 +1255,11 @@ client.on("interactionCreate", async interaction => {
           interaction.fields
             .getTextInputValue(
               "limit_input"
-            );
+            )
+            .trim();
 
         const limit =
-          parseInt(limitInput);
+          parseInt(limitInput, 10);
 
         if (
           isNaN(limit) ||
