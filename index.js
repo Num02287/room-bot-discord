@@ -1,4 +1,3 @@
-```js
 const {
   Client,
   GatewayIntentBits,
@@ -713,59 +712,52 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "lock"
       ) {
 
-        try {
+        // ==================================================
+        // ⚡ ตอบผู้ใช้ทันที
+        // ==================================================
+        await interaction.editReply({
 
-          // ------------------------------------------------
-          // ล็อก @everyone
-          // ------------------------------------------------
-          await channel.permissionOverwrites.edit(
+          content:
+            "🔒 ล็อกห้องเรียบร้อยแล้ว"
+
+        });
+
+        // ==================================================
+        // 🔧 แก้ Permission หลังจากตอบแล้ว
+        // ==================================================
+        const tasks = [
+
+          channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
               ViewChannel: true,
               Connect: false
             }
-          );
+          ).catch(() => {})
 
-          // ------------------------------------------------
-          // ล็อกยศที่กำหนดใน ALLOW_ROLE_ID
-          // ทำทีละยศและรอให้เสร็จ
-          // ------------------------------------------------
-          for (const roleId of allowRoleIds) {
+        ];
 
-            await channel.permissionOverwrites.edit(
+        for (const roleId of allowRoleIds) {
+
+          tasks.push(
+
+            channel.permissionOverwrites.edit(
               roleId,
               {
                 ViewChannel: true,
                 Connect: false
               }
-            );
+            ).catch(() => {})
 
-          }
-
-          await interaction.editReply({
-
-            content:
-              "🔒 ล็อกห้องเรียบร้อยแล้ว"
-
-          });
-
-        } catch (error) {
-
-          console.error(
-            "Lock Error:",
-            error
           );
-
-          await interaction.editReply({
-
-            content:
-              "❌ ไม่สามารถล็อกห้องได้"
-
-          }).catch(() => {});
 
         }
 
+        // ไม่รอผลลัพธ์
+        Promise.allSettled(tasks).catch(() => {});
+
         return;
+
       }
 
       // ==================================================
@@ -775,59 +767,52 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "unlock"
       ) {
 
-        try {
+        // ==================================================
+        // ⚡ ตอบผู้ใช้ทันที
+        // ==================================================
+        await interaction.editReply({
 
-          // ------------------------------------------------
-          // ปลดล็อกยศที่กำหนดใน ALLOW_ROLE_ID
-          // ทำทีละยศและรอให้ Discord อัปเดตจริง
-          // ------------------------------------------------
-          for (const roleId of allowRoleIds) {
+          content:
+            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
 
-            await channel.permissionOverwrites.edit(
-              roleId,
-              {
-                ViewChannel: true,
-                Connect: true
-              }
-            );
+        });
 
-          }
+        // ==================================================
+        // 🔧 แก้ Permission หลังจากตอบแล้ว
+        // ==================================================
+        const tasks = [
 
-          // ------------------------------------------------
-          // @everyone ยังคงเห็นห้องได้ แต่เข้าไม่ได้
-          // ------------------------------------------------
-          await channel.permissionOverwrites.edit(
+          channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
               ViewChannel: true,
               Connect: false
             }
+          ).catch(() => {})
+
+        ];
+
+        for (const roleId of allowRoleIds) {
+
+          tasks.push(
+
+            channel.permissionOverwrites.edit(
+              roleId,
+              {
+                ViewChannel: true,
+                Connect: true
+              }
+            ).catch(() => {})
+
           );
-
-          await interaction.editReply({
-
-            content:
-              "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
-
-          });
-
-        } catch (error) {
-
-          console.error(
-            "Unlock Error:",
-            error
-          );
-
-          await interaction.editReply({
-
-            content:
-              "❌ ไม่สามารถปลดล็อกห้องได้"
-
-          }).catch(() => {});
 
         }
 
+        // ไม่รอผลลัพธ์
+        Promise.allSettled(tasks).catch(() => {});
+
         return;
+
       }
 
       // ==================================================
@@ -1329,4 +1314,3 @@ client.on("interactionCreate", async (interaction) => {
 // 🚀 Login
 // ======================================================
 client.login(token);
-```
