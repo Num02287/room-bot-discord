@@ -718,36 +718,49 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "lock"
       ) {
 
-        await channel.permissionOverwrites.edit(
+        const lockPromises = [
 
-          interaction.guild.id,
+          channel.permissionOverwrites.edit(
 
-          {
-            ViewChannel: true,
-            Connect: false
-          }
-
-        ).catch(() => {});
-
-        // ==================================================
-        // ล็อกยศที่ตั้งไว้ทั้งหมด
-        // ==================================================
-        for (
-          const roleId of allowRoleIds
-        ) {
-
-          await channel.permissionOverwrites.edit(
-
-            roleId,
+            interaction.guild.id,
 
             {
               ViewChannel: true,
               Connect: false
             }
 
-          ).catch(() => {});
+          )
+
+        ];
+
+        // ==================================================
+        // ล็อกยศที่ตั้งไว้ทั้งหมด
+        // ส่งคำสั่งพร้อมกันเพื่อให้เร็วขึ้น
+        // ==================================================
+        for (
+          const roleId of allowRoleIds
+        ) {
+
+          lockPromises.push(
+
+            channel.permissionOverwrites.edit(
+
+              roleId,
+
+              {
+                ViewChannel: true,
+                Connect: false
+              }
+
+            )
+
+          );
 
         }
+
+        await Promise.allSettled(
+          lockPromises
+        );
 
         return interaction.editReply({
 
@@ -765,36 +778,49 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "unlock"
       ) {
 
-        await channel.permissionOverwrites.edit(
+        const unlockPromises = [
 
-          interaction.guild.id,
+          channel.permissionOverwrites.edit(
 
-          {
-            ViewChannel: true,
-            Connect: false
-          }
+            interaction.guild.id,
 
-        ).catch(() => {});
+            {
+              ViewChannel: true,
+              Connect: false
+            }
+
+          )
+
+        ];
 
         // ==================================================
         // ปลดล็อกยศที่ตั้งไว้ทั้งหมด
+        // ส่งคำสั่งพร้อมกันเพื่อให้เร็วขึ้น
         // ==================================================
         for (
           const roleId of allowRoleIds
         ) {
 
-          await channel.permissionOverwrites.edit(
+          unlockPromises.push(
 
-            roleId,
+            channel.permissionOverwrites.edit(
 
-            {
-              ViewChannel: true,
-              Connect: true
-            }
+              roleId,
 
-          ).catch(() => {});
+              {
+                ViewChannel: true,
+                Connect: true
+              }
+
+            )
+
+          );
 
         }
+
+        await Promise.allSettled(
+          unlockPromises
+        );
 
         return interaction.editReply({
 
