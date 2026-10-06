@@ -18,7 +18,7 @@ const {
 const express = require("express");
 
 // ======================================================
-// 🌐 Web Server สำหรับ Render / Cloud
+// 🌐 Web Server
 // ======================================================
 
 const app = express();
@@ -38,10 +38,6 @@ app.listen(process.env.PORT || 3000, () => {
 const token = process.env.TOKEN;
 const createChannelId = process.env.CREATE_CHANNEL_ID;
 const categoryId = process.env.CATEGORY_ID;
-
-// ======================================================
-// 🧑‍🤝‍🧑 ยศที่อนุญาต
-// ======================================================
 
 const allowRoleIds = process.env.ALLOW_ROLE_ID
   ? process.env.ALLOW_ROLE_ID
@@ -63,7 +59,7 @@ const client = new Client({
 });
 
 // ======================================================
-// 🏠 เก็บข้อมูลห้องชั่วคราว
+// 🏠 เก็บข้อมูลห้อง
 // ======================================================
 
 const tempChannels = new Map();
@@ -98,12 +94,14 @@ const commands = [
     .setName("room")
     .setDescription("ระบบสร้างห้อง")
     .setDMPermission(false)
-].map(c => c.toJSON());
+].map(command => command.toJSON());
 
-const rest = new REST({ version: "10" }).setToken(token);
+const rest = new REST({
+  version: "10"
+}).setToken(token);
 
 // ======================================================
-// ✅ Bot Ready
+// ✅ READY
 // ======================================================
 
 client.once("ready", async () => {
@@ -112,7 +110,7 @@ client.once("ready", async () => {
 
   console.log(
     `🧑‍🤝‍🧑 Allow Roles: ${
-      allowRoleIds.length > 0
+      allowRoleIds.length
         ? allowRoleIds.join(", ")
         : "ไม่มี"
     }`
@@ -131,34 +129,38 @@ client.once("ready", async () => {
       "🚀 รีเฟรชและติดตั้ง Slash Commands เรียบร้อยแล้ว!"
     );
 
-  } catch (err) {
+  } catch (error) {
 
-    console.error(err);
+    console.error(
+      "Slash Command Error:",
+      error
+    );
 
   }
 
 });
 
 // ======================================================
-// 🎤 ระบบสร้างห้องเสียงอัตโนมัติ
+// 🎤 Voice State
 // ======================================================
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
 
   try {
 
-    // ====================================================
-    // 1. สมาชิกเข้าห้องสร้างห้อง
-    // ====================================================
+    // ==================================================
+    // 🏠 สร้างห้องใหม่
+    // ==================================================
 
-    if (newState.channelId === createChannelId) {
+    if (
+      newState.channelId === createChannelId
+    ) {
 
-      const guildId = newState.guild.id;
-      const ownerId = newState.member.id;
+      const guildId =
+        newState.guild.id;
 
-      // ==================================================
-      // 🔐 Permission เริ่มต้น
-      // ==================================================
+      const ownerId =
+        newState.member.id;
 
       const permissionOverwrites = [
 
@@ -175,7 +177,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           ]
         },
 
-        // 👤 เจ้าของห้อง
+        // 👑 เจ้าของห้อง
         {
           id: ownerId,
 
@@ -200,7 +202,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       ];
 
       // ==================================================
-      // 👑 เพิ่มสิทธิ์ยศใหญ่
+      // 👑 Big Roles
       // ==================================================
 
       for (const roleId of bigRoleIds) {
@@ -219,7 +221,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       }
 
       // ==================================================
-      // 🧑‍🤝‍🧑 เพิ่มสิทธิ์ยศที่ตั้งค่าใน Render
+      // 🧑‍🤝‍🧑 Allow Roles
       // ==================================================
 
       for (const roleId of allowRoleIds) {
@@ -238,7 +240,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       }
 
       // ==================================================
-      // 🏠 สร้างห้อง
+      // 🏠 Create Channel
       // ==================================================
 
       const channel =
@@ -266,22 +268,22 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         .catch(() => {});
 
       // ==================================================
-      // 💾 บันทึกข้อมูลห้อง
+      // 💾 บันทึกข้อมูล
       // ==================================================
 
-      tempChannels.set(channel.id, {
-
-        owner:
-          ownerId
-
-      });
+      tempChannels.set(
+        channel.id,
+        {
+          owner: ownerId
+        }
+      );
 
       return;
     }
 
-    // ====================================================
-    // 2. ลบห้องเมื่อไม่มีคน
-    // ====================================================
+    // ==================================================
+    // 🗑️ ลบห้องเมื่อไม่มีคน
+    // ==================================================
 
     if (
       oldState.channelId &&
@@ -310,7 +312,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           oldState.channelId
         );
 
-        return;
       }
 
     }
@@ -318,7 +319,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   } catch (error) {
 
     console.error(
-      "Error in voiceStateUpdate:",
+      "VoiceState Error:",
       error
     );
 
@@ -327,15 +328,15 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 });
 
 // ======================================================
-// 🎛️ ระบบ Interaction
+// 🎛️ Interaction Create
 // ======================================================
 
-client.on("interactionCreate", async (interaction) => {
+client.on("interactionCreate", async interaction => {
 
   try {
 
     // ==================================================
-    // 1. /room
+    // /room
     // ==================================================
 
     if (
@@ -370,7 +371,7 @@ client.on("interactionCreate", async (interaction) => {
           .setColor(0x2b2d31);
 
       // ==================================================
-      // ปุ่มชุดที่ 1
+      // ปุ่มแถวที่ 1
       // ==================================================
 
       const row1 =
@@ -405,7 +406,7 @@ client.on("interactionCreate", async (interaction) => {
           );
 
       // ==================================================
-      // ปุ่มชุดที่ 2
+      // ปุ่มแถวที่ 2
       // ==================================================
 
       const row2 =
@@ -439,10 +440,6 @@ client.on("interactionCreate", async (interaction) => {
 
           );
 
-      // ==================================================
-      // ส่งแผงควบคุม
-      // ==================================================
-
       await interaction.channel.send({
 
         embeds: [
@@ -470,10 +467,12 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ==================================================
-    // 2. ปุ่ม
+    // 🔘 BUTTON
     // ==================================================
 
-    if (interaction.isButton()) {
+    if (
+      interaction.isButton()
+    ) {
 
       const member =
         interaction.member;
@@ -506,7 +505,7 @@ client.on("interactionCreate", async (interaction) => {
         tempChannels.get(channel.id);
 
       // ==================================================
-      // 👑 ตรวจสอบเจ้าของ
+      // 👑 ดูเจ้าของ
       // ==================================================
 
       if (
@@ -582,7 +581,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // ✏️ เปลี่ยนชื่อ
+      // ✏️ NAME
       // ==================================================
 
       if (
@@ -591,30 +590,14 @@ client.on("interactionCreate", async (interaction) => {
 
         const modal =
           new ModalBuilder()
-
-            .setCustomId(
-              "rename_room"
-            )
-
-            .setTitle(
-              "เปลี่ยนชื่อห้อง"
-            );
+            .setCustomId("rename_room")
+            .setTitle("เปลี่ยนชื่อห้อง");
 
         const input =
           new TextInputBuilder()
-
-            .setCustomId(
-              "room_name"
-            )
-
-            .setLabel(
-              "ชื่อห้องใหม่"
-            )
-
-            .setStyle(
-              TextInputStyle.Short
-            )
-
+            .setCustomId("room_name")
+            .setLabel("ชื่อห้องใหม่")
+            .setStyle(TextInputStyle.Short)
             .setRequired(true);
 
         modal.addComponents(
@@ -631,7 +614,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // 🎯 จำกัดจำนวนคน
+      // 🎯 LIMIT
       // ==================================================
 
       if (
@@ -640,30 +623,14 @@ client.on("interactionCreate", async (interaction) => {
 
         const modal =
           new ModalBuilder()
-
-            .setCustomId(
-              "limit_room"
-            )
-
-            .setTitle(
-              "ตั้งจำนวนคน"
-            );
+            .setCustomId("limit_room")
+            .setTitle("ตั้งจำนวนคน");
 
         const input =
           new TextInputBuilder()
-
-            .setCustomId(
-              "limit_input"
-            )
-
-            .setLabel(
-              "ใส่จำนวนคน (0 = ไม่จำกัด)"
-            )
-
-            .setStyle(
-              TextInputStyle.Short
-            )
-
+            .setCustomId("limit_input")
+            .setLabel("ใส่จำนวนคน (0 = ไม่จำกัด)")
+            .setStyle(TextInputStyle.Short)
             .setRequired(true);
 
         modal.addComponents(
@@ -680,7 +647,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // 👥 Allow / Deny / Transfer
+      // 👥 ALLOW / DENY / TRANSFER
       // ==================================================
 
       if (
@@ -695,11 +662,9 @@ client.on("interactionCreate", async (interaction) => {
 
         const menu =
           new UserSelectMenuBuilder()
-
             .setCustomId(
               `select_${interaction.customId}`
             )
-
             .setPlaceholder(
               "เลือกสมาชิกที่ต้องการ..."
             );
@@ -723,19 +688,15 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // Permission Commands
+      // ⚡ Permission Commands
       // ==================================================
 
       await interaction.deferReply({
-
         ephemeral: true
-
       });
 
       // ==================================================
       // 🔒 LOCK
-      // ทำงานเหมือน SHOW
-      // ไม่มี Delay
       // ==================================================
 
       if (
@@ -752,10 +713,6 @@ client.on("interactionCreate", async (interaction) => {
           }
 
         ).catch(() => {});
-
-        // ==================================================
-        // ล็อกยศที่ตั้งไว้ทั้งหมด
-        // ==================================================
 
         for (
           const roleId of allowRoleIds
@@ -785,8 +742,6 @@ client.on("interactionCreate", async (interaction) => {
 
       // ==================================================
       // 🔓 UNLOCK
-      // ทำงานเหมือน SHOW
-      // ไม่มี Delay
       // ==================================================
 
       if (
@@ -803,10 +758,6 @@ client.on("interactionCreate", async (interaction) => {
           }
 
         ).catch(() => {});
-
-        // ==================================================
-        // ปลดล็อกยศที่ตั้งไว้ทั้งหมด
-        // ==================================================
 
         for (
           const roleId of allowRoleIds
@@ -835,7 +786,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // 🙈 HIDE ROOM
+      // 🙈 HIDE
       // ==================================================
 
       if (
@@ -869,7 +820,6 @@ client.on("interactionCreate", async (interaction) => {
 
         const permissions = [
 
-          // @everyone
           {
             id:
               interaction.guild.id,
@@ -881,7 +831,6 @@ client.on("interactionCreate", async (interaction) => {
 
           },
 
-          // 🤖 Bot
           {
             id:
               client.user.id,
@@ -895,7 +844,6 @@ client.on("interactionCreate", async (interaction) => {
 
           },
 
-          // 👤 เจ้าของ
           {
             id:
               data.owner,
@@ -941,7 +889,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // 👁️ SHOW ROOM
+      // 👁️ SHOW
       // ==================================================
 
       if (
@@ -1013,7 +961,7 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ==================================================
-    // 3. User Select Menu
+    // 👤 USER SELECT
     // ==================================================
 
     if (
@@ -1027,10 +975,6 @@ client.on("interactionCreate", async (interaction) => {
         tempChannels.get(
           channel?.id
         );
-
-      // ==================================================
-      // ตรวจสอบเจ้าของ
-      // ==================================================
 
       if (
         !channel ||
@@ -1132,12 +1076,59 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "select_transfer"
       ) {
 
-        data.owner =
+        // ==================================================
+        // 👤 จำเจ้าของเดิม
+        // ==================================================
+
+        const oldOwnerId =
+          data.owner;
+
+        // ==================================================
+        // 👑 เจ้าของใหม่
+        // ==================================================
+
+        const newOwnerId =
           targetId;
+
+        // ==================================================
+        // 🧹 ลบ Permission ของเจ้าของเดิม
+        // ให้กลับไปเหมือนสมาชิกทั่วไป
+        // ==================================================
+
+        await channel.permissionOverwrites
+          .delete(oldOwnerId)
+          .catch(() => {});
+
+        // ==================================================
+        // 👑 เปลี่ยนเจ้าของ
+        // ==================================================
+
+        data.owner =
+          newOwnerId;
+
+        // ==================================================
+        // 👑 ให้สิทธิ์เจ้าของใหม่
+        // เหมือนตอนสร้างห้อง
+        // ==================================================
+
+        await channel.permissionOverwrites.edit(
+
+          newOwnerId,
+
+          {
+            ViewChannel: true,
+            Connect: true
+          }
+
+        ).catch(() => {});
+
+        // ==================================================
+        // 🏠 เปลี่ยนชื่อห้อง
+        // ==================================================
 
         const targetUser =
           await client.users
-            .fetch(targetId)
+            .fetch(newOwnerId)
             .catch(() => null);
 
         if (targetUser) {
@@ -1150,21 +1141,14 @@ client.on("interactionCreate", async (interaction) => {
 
         }
 
-        await channel.permissionOverwrites.edit(
-
-          targetId,
-
-          {
-            Connect: true,
-            ViewChannel: true
-          }
-
-        ).catch(() => {});
+        // ==================================================
+        // ✅ แจ้งผล
+        // ==================================================
 
         return interaction.reply({
 
           content:
-            `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้ว`,
+            `🔁 โอนความเป็นเจ้าของห้องให้ <@${newOwnerId}> เรียบร้อยแล้ว`,
 
           ephemeral: true
 
@@ -1175,7 +1159,7 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ==================================================
-    // 4. Modal
+    // 📝 MODAL
     // ==================================================
 
     if (
@@ -1189,10 +1173,6 @@ client.on("interactionCreate", async (interaction) => {
         tempChannels.get(
           channel?.id
         );
-
-      // ==================================================
-      // ตรวจสอบเจ้าของ
-      // ==================================================
 
       if (
         !channel ||
@@ -1266,7 +1246,7 @@ client.on("interactionCreate", async (interaction) => {
           return interaction.reply({
 
             content:
-              "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง (0 - 99)",
+              "❌ โปรดใส่หมายเลขที่ถูกต้องระหว่าง 0 - 99",
 
             ephemeral: true
 
@@ -1274,24 +1254,17 @@ client.on("interactionCreate", async (interaction) => {
 
         }
 
-        const finalLimit =
-          limit === 0
-            ? 0
-            : limit;
-
         await channel
-          .setUserLimit(
-            finalLimit
-          )
+          .setUserLimit(limit)
           .catch(() => {});
 
         return interaction.reply({
 
           content:
-            `🎯 ตั้งจำกัดจำนวนคนรวมเจ้าของไว้ที่ **${
+            `🎯 ตั้งจำนวนคนเป็น **${
               limit === 0
                 ? "ไม่จำกัด"
-                : limit + " คน"
+                : `${limit} คน`
             }** เรียบร้อยแล้ว`,
 
           ephemeral: true
@@ -1302,11 +1275,11 @@ client.on("interactionCreate", async (interaction) => {
 
     }
 
-  } catch (err) {
+  } catch (error) {
 
     console.error(
       "Interaction Error:",
-      err
+      error
     );
 
     if (
@@ -1314,7 +1287,7 @@ client.on("interactionCreate", async (interaction) => {
       !interaction.deferred
     ) {
 
-      interaction.reply({
+      await interaction.reply({
 
         content:
           "❌ เกิดข้อผิดพลาดในการประมวลผลคำสั่ง",
@@ -1327,7 +1300,7 @@ client.on("interactionCreate", async (interaction) => {
       interaction.deferred
     ) {
 
-      interaction.editReply({
+      await interaction.editReply({
 
         content:
           "❌ เกิดข้อผิดพลาดในการประมวลผลคำสั่ง"
