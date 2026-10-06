@@ -39,10 +39,6 @@ const categoryId = process.env.CATEGORY_ID;
 
 // ======================================================
 // 🧑‍🤝‍🧑 ยศที่อนุญาต
-// รองรับหลาย Role ID
-//
-// ตัวอย่างใน Render:
-// 123456789,987654321,555555555
 // ======================================================
 const allowRoleIds = process.env.ALLOW_ROLE_ID
   ? process.env.ALLOW_ROLE_ID
@@ -69,7 +65,6 @@ const tempChannels = new Map();
 
 // ======================================================
 // 👑 ยศใหญ่
-// ใช้ชุดเดียวกันทั้งระบบ
 // ======================================================
 const bigRoleIds = [
   "1502362111345426432",
@@ -157,7 +152,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       const permissionOverwrites = [
 
         // @everyone
-        // ❌ เข้าไม่ได้
         {
           id: guildId,
 
@@ -474,7 +468,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "❌ คุณต้องอยู่ในห้องเสียงก่อนครับ",
+            "❌ คุณต้องอยู่ในห้องเสียงก่อน",
 
           ephemeral: true
 
@@ -556,7 +550,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ ไม่สามารถสั่งการได้",
+            "❌ คุณไม่ใช่เจ้าของห้องนี้ ไม่สามารถสั่งการได้",
 
           ephemeral: true
 
@@ -687,7 +681,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่างนี้ครับ",
+            "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่าง",
 
           components: [
 
@@ -718,36 +712,36 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "lock"
       ) {
 
-        await channel.permissionOverwrites.edit(
+        const tasks = [];
 
-          interaction.guild.id,
-
-          {
-            ViewChannel: true,
-            Connect: false
-          }
-
-        ).catch(() => {});
-
-        // ==================================================
-        // ล็อกยศที่ตั้งไว้ทั้งหมด
-        // ==================================================
-        for (
-          const roleId of allowRoleIds
-        ) {
-
-          await channel.permissionOverwrites.edit(
-
-            roleId,
-
+        // @everyone
+        tasks.push(
+          channel.permissionOverwrites.edit(
+            interaction.guild.id,
             {
               ViewChannel: true,
               Connect: false
             }
+          ).catch(() => {})
+        );
 
-          ).catch(() => {});
+        // ยศที่ตั้งค่าใน Render
+        for (const roleId of allowRoleIds) {
+
+          tasks.push(
+            channel.permissionOverwrites.edit(
+              roleId,
+              {
+                ViewChannel: true,
+                Connect: false
+              }
+            ).catch(() => {})
+          );
 
         }
+
+        // ส่งคำขอพร้อมกัน
+        await Promise.allSettled(tasks);
 
         return interaction.editReply({
 
@@ -765,36 +759,36 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "unlock"
       ) {
 
-        await channel.permissionOverwrites.edit(
+        const tasks = [];
 
-          interaction.guild.id,
-
-          {
-            ViewChannel: true,
-            Connect: false
-          }
-
-        ).catch(() => {});
-
-        // ==================================================
-        // ปลดล็อกยศที่ตั้งไว้ทั้งหมด
-        // ==================================================
-        for (
-          const roleId of allowRoleIds
-        ) {
-
-          await channel.permissionOverwrites.edit(
-
-            roleId,
-
+        // @everyone
+        tasks.push(
+          channel.permissionOverwrites.edit(
+            interaction.guild.id,
             {
               ViewChannel: true,
-              Connect: true
+              Connect: false
             }
+          ).catch(() => {})
+        );
 
-          ).catch(() => {});
+        // ยศที่ตั้งค่าใน Render
+        for (const roleId of allowRoleIds) {
+
+          tasks.push(
+            channel.permissionOverwrites.edit(
+              roleId,
+              {
+                ViewChannel: true,
+                Connect: true
+              }
+            ).catch(() => {})
+          );
 
         }
+
+        // ส่งคำขอพร้อมกัน
+        await Promise.allSettled(tasks);
 
         return interaction.editReply({
 
@@ -807,20 +801,11 @@ client.on("interactionCreate", async (interaction) => {
 
       // ==================================================
       // 🙈 HIDE ROOM
-      //
-      // เหลือเฉพาะ:
-      // 👤 เจ้าของห้อง
-      // 🤖 Bot
-      //
-      // ทุกยศอื่น ๆ มองไม่เห็น
       // ==================================================
       if (
         interaction.customId === "hide"
       ) {
 
-        // ==================================================
-        // บันทึก Permission เดิม
-        // ==================================================
         if (
           !data.savedPermissions
         ) {
@@ -846,9 +831,6 @@ client.on("interactionCreate", async (interaction) => {
 
         }
 
-        // ==================================================
-        // Permission ใหม่
-        // ==================================================
         const permissions = [
 
           // @everyone
@@ -890,13 +872,6 @@ client.on("interactionCreate", async (interaction) => {
           }
 
         ];
-
-        // ==================================================
-        // ❗ ไม่มี bigRoleIds
-        // ❗ ไม่มี allowRoleIds
-        //
-        // ดังนั้นยศทั้งหมดจะถูกซ่อน
-        // ==================================================
 
         try {
 
@@ -1059,7 +1034,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้วครับ`,
+            `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้ว`,
 
           ephemeral: true
 
@@ -1100,7 +1075,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้วครับ`,
+            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้ว`,
 
           ephemeral: true
 
@@ -1147,7 +1122,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้วครับ`,
+            `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้ว`,
 
           ephemeral: true
 
