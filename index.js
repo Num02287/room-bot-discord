@@ -40,9 +40,6 @@ const categoryId = process.env.CATEGORY_ID;
 // ======================================================
 // 🧑‍🤝‍🧑 ยศที่อนุญาต
 // รองรับหลาย Role ID
-//
-// ตัวอย่างใน Render:
-// 123456789,987654321,555555555
 // ======================================================
 const allowRoleIds = process.env.ALLOW_ROLE_ID
   ? process.env.ALLOW_ROLE_ID
@@ -474,7 +471,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "❌ คุณต้องอยู่ในห้องเสียงก่อนครับ",
+            "❌ คุณต้องอยู่ในห้องเสียงก่อน",
 
           ephemeral: true
 
@@ -556,7 +553,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "❌ คุณไม่ใช่เจ้าของห้องนี้ครับ ไม่สามารถสั่งการได้",
+            "❌ คุณไม่ใช่เจ้าของห้องนี้ ไม่สามารถสั่งการได้",
 
           ephemeral: true
 
@@ -687,7 +684,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่างนี้ครับ",
+            "🎯 โปรดเลือกสมาชิกจากเมนูด้านล่างนี้",
 
           components: [
 
@@ -703,21 +700,28 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // ==================================================
-      // Permission Commands
-      // ==================================================
-      await interaction.deferReply({
-
-        ephemeral: true
-
-      });
-
-      // ==================================================
       // 🔒 LOCK
+      // ==================================================
+      // สำคัญ:
+      // ไม่ใช้ deferReply ก่อนหน้านี้
+      // ตอบกลับทันทีเมื่อกดปุ่ม
       // ==================================================
       if (
         interaction.customId === "lock"
       ) {
 
+        await interaction.reply({
+
+          content:
+            "🔒 ล็อกห้องเรียบร้อยแล้ว",
+
+          ephemeral: true
+
+        });
+
+        // ==================================================
+        // เปลี่ยน Permission เบื้องหลัง
+        // ==================================================
         const lockPromises = [
 
           channel.permissionOverwrites.edit(
@@ -734,8 +738,7 @@ client.on("interactionCreate", async (interaction) => {
         ];
 
         // ==================================================
-        // ล็อกยศที่ตั้งไว้ทั้งหมด
-        // ส่งคำสั่งพร้อมกันเพื่อให้เร็วขึ้น
+        // ล็อกยศที่ตั้งไว้ทั้งหมดพร้อมกัน
         // ==================================================
         for (
           const roleId of allowRoleIds
@@ -758,26 +761,41 @@ client.on("interactionCreate", async (interaction) => {
 
         }
 
-        await Promise.allSettled(
+        // ==================================================
+        // ไม่รอ Permission
+        // ทำต่อเบื้องหลัง
+        // ==================================================
+        Promise.allSettled(
           lockPromises
-        );
+        ).catch(() => {});
 
-        return interaction.editReply({
-
-          content:
-            "🔒 ล็อกห้องเรียบร้อยแล้ว"
-
-        });
+        return;
 
       }
 
       // ==================================================
       // 🔓 UNLOCK
       // ==================================================
+      // สำคัญ:
+      // ไม่ใช้ deferReply ก่อนหน้านี้
+      // ตอบกลับทันทีเมื่อกดปุ่ม
+      // ==================================================
       if (
         interaction.customId === "unlock"
       ) {
 
+        await interaction.reply({
+
+          content:
+            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว",
+
+          ephemeral: true
+
+        });
+
+        // ==================================================
+        // เปลี่ยน Permission เบื้องหลัง
+        // ==================================================
         const unlockPromises = [
 
           channel.permissionOverwrites.edit(
@@ -794,8 +812,7 @@ client.on("interactionCreate", async (interaction) => {
         ];
 
         // ==================================================
-        // ปลดล็อกยศที่ตั้งไว้ทั้งหมด
-        // ส่งคำสั่งพร้อมกันเพื่อให้เร็วขึ้น
+        // ปลดล็อกยศที่ตั้งไว้ทั้งหมดพร้อมกัน
         // ==================================================
         for (
           const roleId of allowRoleIds
@@ -818,18 +835,27 @@ client.on("interactionCreate", async (interaction) => {
 
         }
 
-        await Promise.allSettled(
+        // ==================================================
+        // ไม่รอ Permission
+        // ทำต่อเบื้องหลัง
+        // ==================================================
+        Promise.allSettled(
           unlockPromises
-        );
+        ).catch(() => {});
 
-        return interaction.editReply({
-
-          content:
-            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
-
-        });
+        return;
 
       }
+
+      // ==================================================
+      // Permission Commands
+      // ปุ่มอื่นยังใช้ deferReply เหมือนเดิม
+      // ==================================================
+      await interaction.deferReply({
+
+        ephemeral: true
+
+      });
 
       // ==================================================
       // 🙈 HIDE ROOM
@@ -916,13 +942,6 @@ client.on("interactionCreate", async (interaction) => {
           }
 
         ];
-
-        // ==================================================
-        // ❗ ไม่มี bigRoleIds
-        // ❗ ไม่มี allowRoleIds
-        //
-        // ดังนั้นยศทั้งหมดจะถูกซ่อน
-        // ==================================================
 
         try {
 
@@ -1085,7 +1104,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้วครับ`,
+            `✅ อนุญาตให้ <@${targetId}> มองเห็นและเข้าห้องได้แล้ว`,
 
           ephemeral: true
 
@@ -1126,7 +1145,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้วครับ`,
+            `🚫 บล็อก <@${targetId}> ไม่ให้เข้าห้องเรียบร้อยแล้ว`,
 
           ephemeral: true
 
@@ -1173,7 +1192,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply({
 
           content:
-            `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้วครับ`,
+            `🔁 โอนความเป็นเจ้าของห้องให้ <@${targetId}> เรียบร้อยแล้ว`,
 
           ephemeral: true
 
