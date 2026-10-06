@@ -715,7 +715,9 @@ client.on("interactionCreate", async (interaction) => {
 
         try {
 
-          // ล็อก @everyone ก่อน
+          // ------------------------------------------------
+          // ล็อก @everyone
+          // ------------------------------------------------
           await channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
@@ -724,7 +726,10 @@ client.on("interactionCreate", async (interaction) => {
             }
           );
 
-          // ล็อกยศที่กำหนดไว้ทีละยศ
+          // ------------------------------------------------
+          // ล็อกยศที่กำหนดใน ALLOW_ROLE_ID
+          // ทำทีละยศและรอให้เสร็จ
+          // ------------------------------------------------
           for (const roleId of allowRoleIds) {
 
             await channel.permissionOverwrites.edit(
@@ -772,7 +777,10 @@ client.on("interactionCreate", async (interaction) => {
 
         try {
 
-          // ปลดล็อกยศที่กำหนดไว้ทีละยศ
+          // ------------------------------------------------
+          // ปลดล็อกยศที่กำหนดใน ALLOW_ROLE_ID
+          // ทำทีละยศและรอให้ Discord อัปเดตจริง
+          // ------------------------------------------------
           for (const roleId of allowRoleIds) {
 
             await channel.permissionOverwrites.edit(
@@ -785,7 +793,9 @@ client.on("interactionCreate", async (interaction) => {
 
           }
 
+          // ------------------------------------------------
           // @everyone ยังคงเห็นห้องได้ แต่เข้าไม่ได้
+          // ------------------------------------------------
           await channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
