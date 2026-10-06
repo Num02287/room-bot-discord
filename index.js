@@ -712,10 +712,21 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "lock"
       ) {
 
-        const tasks = [];
+        // ==================================================
+        // ⚡ ตอบผู้ใช้ทันที
+        // ==================================================
+        await interaction.editReply({
 
-        // @everyone
-        tasks.push(
+          content:
+            "🔒 ล็อกห้องเรียบร้อยแล้ว"
+
+        });
+
+        // ==================================================
+        // 🔧 แก้ Permission หลังจากตอบแล้ว
+        // ==================================================
+        const tasks = [
+
           channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
@@ -723,12 +734,13 @@ client.on("interactionCreate", async (interaction) => {
               Connect: false
             }
           ).catch(() => {})
-        );
 
-        // ยศที่ตั้งค่าใน Render
+        ];
+
         for (const roleId of allowRoleIds) {
 
           tasks.push(
+
             channel.permissionOverwrites.edit(
               roleId,
               {
@@ -736,19 +748,15 @@ client.on("interactionCreate", async (interaction) => {
                 Connect: false
               }
             ).catch(() => {})
+
           );
 
         }
 
-        // ส่งคำขอพร้อมกัน
-        await Promise.allSettled(tasks);
+        // ไม่รอผลลัพธ์
+        Promise.allSettled(tasks).catch(() => {});
 
-        return interaction.editReply({
-
-          content:
-            "🔒 ล็อกห้องเรียบร้อยแล้ว"
-
-        });
+        return;
 
       }
 
@@ -759,10 +767,21 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "unlock"
       ) {
 
-        const tasks = [];
+        // ==================================================
+        // ⚡ ตอบผู้ใช้ทันที
+        // ==================================================
+        await interaction.editReply({
 
-        // @everyone
-        tasks.push(
+          content:
+            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
+
+        });
+
+        // ==================================================
+        // 🔧 แก้ Permission หลังจากตอบแล้ว
+        // ==================================================
+        const tasks = [
+
           channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
@@ -770,12 +789,13 @@ client.on("interactionCreate", async (interaction) => {
               Connect: false
             }
           ).catch(() => {})
-        );
 
-        // ยศที่ตั้งค่าใน Render
+        ];
+
         for (const roleId of allowRoleIds) {
 
           tasks.push(
+
             channel.permissionOverwrites.edit(
               roleId,
               {
@@ -783,19 +803,15 @@ client.on("interactionCreate", async (interaction) => {
                 Connect: true
               }
             ).catch(() => {})
+
           );
 
         }
 
-        // ส่งคำขอพร้อมกัน
-        await Promise.allSettled(tasks);
+        // ไม่รอผลลัพธ์
+        Promise.allSettled(tasks).catch(() => {});
 
-        return interaction.editReply({
-
-          content:
-            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
-
-        });
+        return;
 
       }
 
