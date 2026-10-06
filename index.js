@@ -1,3 +1,4 @@
+```js
 const {
   Client,
   GatewayIntentBits,
@@ -712,52 +713,54 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "lock"
       ) {
 
-        // ==================================================
-        // ⚡ ตอบผู้ใช้ทันที
-        // ==================================================
-        await interaction.editReply({
+        try {
 
-          content:
-            "🔒 ล็อกห้องเรียบร้อยแล้ว"
-
-        });
-
-        // ==================================================
-        // 🔧 แก้ Permission หลังจากตอบแล้ว
-        // ==================================================
-        const tasks = [
-
-          channel.permissionOverwrites.edit(
+          // ล็อก @everyone ก่อน
+          await channel.permissionOverwrites.edit(
             interaction.guild.id,
             {
               ViewChannel: true,
               Connect: false
             }
-          ).catch(() => {})
+          );
 
-        ];
+          // ล็อกยศที่กำหนดไว้ทีละยศ
+          for (const roleId of allowRoleIds) {
 
-        for (const roleId of allowRoleIds) {
-
-          tasks.push(
-
-            channel.permissionOverwrites.edit(
+            await channel.permissionOverwrites.edit(
               roleId,
               {
                 ViewChannel: true,
                 Connect: false
               }
-            ).catch(() => {})
+            );
 
+          }
+
+          await interaction.editReply({
+
+            content:
+              "🔒 ล็อกห้องเรียบร้อยแล้ว"
+
+          });
+
+        } catch (error) {
+
+          console.error(
+            "Lock Error:",
+            error
           );
+
+          await interaction.editReply({
+
+            content:
+              "❌ ไม่สามารถล็อกห้องได้"
+
+          }).catch(() => {});
 
         }
 
-        // ไม่รอผลลัพธ์
-        Promise.allSettled(tasks).catch(() => {});
-
         return;
-
       }
 
       // ==================================================
@@ -767,52 +770,54 @@ client.on("interactionCreate", async (interaction) => {
         interaction.customId === "unlock"
       ) {
 
-        // ==================================================
-        // ⚡ ตอบผู้ใช้ทันที
-        // ==================================================
-        await interaction.editReply({
+        try {
 
-          content:
-            "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
+          // ปลดล็อกยศที่กำหนดไว้ทีละยศ
+          for (const roleId of allowRoleIds) {
 
-        });
-
-        // ==================================================
-        // 🔧 แก้ Permission หลังจากตอบแล้ว
-        // ==================================================
-        const tasks = [
-
-          channel.permissionOverwrites.edit(
-            interaction.guild.id,
-            {
-              ViewChannel: true,
-              Connect: false
-            }
-          ).catch(() => {})
-
-        ];
-
-        for (const roleId of allowRoleIds) {
-
-          tasks.push(
-
-            channel.permissionOverwrites.edit(
+            await channel.permissionOverwrites.edit(
               roleId,
               {
                 ViewChannel: true,
                 Connect: true
               }
-            ).catch(() => {})
+            );
 
+          }
+
+          // @everyone ยังคงเห็นห้องได้ แต่เข้าไม่ได้
+          await channel.permissionOverwrites.edit(
+            interaction.guild.id,
+            {
+              ViewChannel: true,
+              Connect: false
+            }
           );
+
+          await interaction.editReply({
+
+            content:
+              "🔓 ปลดล็อกห้องเรียบร้อยแล้ว"
+
+          });
+
+        } catch (error) {
+
+          console.error(
+            "Unlock Error:",
+            error
+          );
+
+          await interaction.editReply({
+
+            content:
+              "❌ ไม่สามารถปลดล็อกห้องได้"
+
+          }).catch(() => {});
 
         }
 
-        // ไม่รอผลลัพธ์
-        Promise.allSettled(tasks).catch(() => {});
-
         return;
-
       }
 
       // ==================================================
@@ -1314,3 +1319,4 @@ client.on("interactionCreate", async (interaction) => {
 // 🚀 Login
 // ======================================================
 client.login(token);
+```
